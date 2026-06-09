@@ -2,8 +2,8 @@
 -- Ponto de entrada para carregar a automação modularizada
 
 -- Configuração do repositório
-local GITHUB_USER = "SEU_USUARIO"
-local GITHUB_REPO = "SEU_REPOSITORIO"
+local GITHUB_USER = "GitHubTestaName"
+local GITHUB_REPO = "Islands"
 local BRANCH = "main"
 local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, GITHUB_REPO, BRANCH)
 
