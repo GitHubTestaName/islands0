@@ -1,7 +1,5 @@
 -- src/actions/Builder.lua
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Builder = {}
 local Bot = _G.IslandsBot
 local State = Bot.State
@@ -18,13 +16,24 @@ function Builder:ColocarAreaMarcada()
         return 
     end
 
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool or not ReplicatedStorage:WaitForChild("Blocks"):FindFirstChild(tool.Name) then
-        if Manager then Manager:AtualizarStatus("ERRO: Equipe um Bloco Válido!") end
+    local nomeBloco = State.BlocoSelecionado
+    if not nomeBloco or nomeBloco == "" or nomeBloco == "Nenhuma ferramenta encontrada" then
+        if Manager then Manager:AtualizarStatus("ERRO: Selecione um bloco na lista!") end
         return
+    end
+
+    local char = LocalPlayer.Character
+    local tool = LocalPlayer.Backpack:FindFirstChild(nomeBloco) or (char and char:FindFirstChild(nomeBloco))
+    
+    if not tool then
+        if Manager then Manager:AtualizarStatus("ERRO: Não tem o bloco: " .. nomeBloco) end
+        return
+    end
+
+    -- Equipa a ferramenta automaticamente
+    if char and tool.Parent == LocalPlayer.Backpack then
+        char.Humanoid:EquipTool(tool)
+        task.wait(0.2)
     end
 
     State.Construindo = true
@@ -56,9 +65,7 @@ function Builder:ColocarAreaMarcada()
                             blockType = tool.Name,
                             upperBlock = false
                         }
-                        pcall(function() 
-                            Manager.PlaceRemote:InvokeServer(payload) 
-                        end)
+                        pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
                         task.wait(0.05) 
                     end
                 end

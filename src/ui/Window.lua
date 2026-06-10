@@ -5,12 +5,12 @@ local Bot = _G.IslandsBot
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Islands Automation (Modular)",
-    LoadingTitle = "Carregando Modulos...",
+    LoadingTitle = "Carregando Módulos...",
     LoadingSubtitle = "by Islands Script",
     ConfigurationSaving = { Enabled = false }
 })
 
--- ABA PRINCIPAL
+-- ================= ABA PRINCIPAL (CONSTRUÇÃO / MINERAÇÃO) =================
 local TabAutofarm = Window:CreateTab("Principal", nil)
 
 local ParagraphStatus = TabAutofarm:CreateParagraph({
@@ -30,8 +30,8 @@ TabAutofarm:CreateButton({
     end,
 })
 
-local ToggleMinerar = TabAutofarm:CreateToggle({
-    Name = "2. Autofarm Mineracao",
+TabAutofarm:CreateToggle({
+    Name = "2. Autofarm Mineração",
     CurrentValue = false,
     Flag = "ToggleMiner",
     Callback = function(Value)
@@ -40,15 +40,35 @@ local ToggleMinerar = TabAutofarm:CreateToggle({
     end,
 })
 
+-- Secção de Construção Automática
+local DropdownBlocos = TabAutofarm:CreateDropdown({
+    Name = "Bloco para Construir",
+    Options = {"Nenhuma ferramenta encontrada"},
+    CurrentOption = {"Nenhuma ferramenta encontrada"},
+    MultipleOptions = false,
+    Callback = function(Option)
+        Bot.State.BlocoSelecionado = Option[1]
+    end,
+})
+
 TabAutofarm:CreateButton({
-    Name = "3. Preencher Area (Construir)",
+    Name = "🔄 Atualizar Inventário de Blocos",
+    Callback = function()
+        if Bot.Modules.Manager then
+            DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools(), true)
+        end
+    end,
+})
+
+TabAutofarm:CreateButton({
+    Name = "3. Preencher Área (Auto-Equipa)",
     Callback = function()
         local Builder = Bot.Modules.Builder
         if Builder then Builder:ColocarAreaMarcada() end
     end,
 })
 
--- NOVA ABA: FAZENDA
+-- ================= NOVA ABA: FAZENDA INTELIGENTE =================
 local TabFazenda = Window:CreateTab("Fazenda", nil)
 
 TabFazenda:CreateButton({
@@ -58,24 +78,41 @@ TabFazenda:CreateButton({
     end,
 })
 
-TabFazenda:CreateButton({
-    Name = "Plantar Sementes (Equipe na mao)",
-    Callback = function()
-        if Bot.Modules.Farmer then Bot.Modules.Farmer:PlantarSementes() end
+local DropdownSementes = TabFazenda:CreateDropdown({
+    Name = "Semente para Auto-Fazenda",
+    Options = {"Nenhuma ferramenta encontrada"},
+    CurrentOption = {"Nenhuma ferramenta encontrada"},
+    MultipleOptions = false,
+    Callback = function(Option)
+        Bot.State.SementeSelecionada = Option[1]
     end,
 })
 
 TabFazenda:CreateButton({
-    Name = "Colher Area Selecionada",
+    Name = "🔄 Atualizar Inventário de Sementes",
     Callback = function()
-        if Bot.Modules.Farmer then Bot.Modules.Farmer:ColherPlantacoes() end
+        if Bot.Modules.Manager then
+            DropdownSementes:Refresh(Bot.Modules.Manager:GetInventoryTools(), true)
+        end
     end,
 })
 
+TabFazenda:CreateToggle({
+    Name = "🟢 Iniciar Auto-Fazenda (Colher + Plantar)",
+    CurrentValue = false,
+    Flag = "ToggleFarmer",
+    Callback = function(Value)
+        local Farmer = Bot.Modules.Farmer
+        if Farmer then Farmer:AlternarAutoFazenda(Value) end
+    end,
+})
+
+-- ================= SAÍDA =================
 TabAutofarm:CreateButton({
     Name = "Descarregar Script",
     Callback = function()
         if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(false) end
+        if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(false) end
         if Bot.Modules.Scanner then Bot.Modules.Scanner:LimparAncora() end
         Rayfield:Destroy()
     end,

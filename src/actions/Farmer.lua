@@ -14,98 +14,93 @@ function Farmer:ArarTerra()
     task.spawn(function()
         for _, dados in ipairs(State.ListaBlocos) do
             local bloco = dados.Instancia
-            if bloco and bloco.Parent then
-                -- Segurança: Só envia para o remote de arar se for terra ou grama
-                if bloco.Name:lower():find("grass") or bloco.Name:lower():find("dirt") then
-                    pcall(function() 
-                        Manager.PlowRemote:InvokeServer({ block = bloco }) 
-                    end)
-                    task.wait(0.05) -- Respeitando o limite do servidor
-                end
+            if bloco and bloco.Parent and (bloco.Name:lower():find("grass") or bloco.Name:lower():find("dirt")) then
+                pcall(function() Manager.PlowRemote:InvokeServer({ block = bloco }) end)
+                task.wait(0.05)
             end
         end
-        if Manager then Manager:AtualizarStatus("Area arada!") end
+        if Manager then Manager:AtualizarStatus("Área arada!") end
     end)
 end
 
-function Farmer:ColherPlantacoes()
+-- LOOP INTELIGENTE DE AUTO-FAZENDA (Colhe e Planta)
+function Farmer:AlternarAutoFazenda(valor)
+    State.AutoFarmingCrops = valor
     local Manager = Bot.Modules.Manager
-    if not State.AncoraPart then return end
-    if Manager then Manager:AtualizarStatus("Colhendo...") end
 
-    task.spawn(function()
-        for _, dados in ipairs(State.ListaBlocos) do
-            local blocoRaiz = dados.Instancia
-            if blocoRaiz and blocoRaiz.Parent then
-                local alvoColheita = blocoRaiz
-                
-                -- IA de Colheita: Se o bloco selecionado for a terra, procura a planta 1 bloco acima!
-                if blocoRaiz.Name:lower():find("grass") or blocoRaiz.Name:lower():find("dirt") then
-                    local posPlanta = dados.Posicao + Vector3.new(0, Config.BLOCK_SIZE, 0)
+    if valor then
+        if Manager then Manager:AtualizarStatus("Auto-Fazenda Iniciada...") end
+        task.spawn(function()
+            while State.AutoFarmingCrops do
+                if not State.AncoraPart then
+                    if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor!") end
+                    State.AutoFarmingCrops = false
+                    break
+                end
+
+                for _, dados in ipairs(State.ListaBlocos) do
+                    if not State.AutoFarmingCrops then break end
                     
-                    -- Varre a ilha para achar a planta (crop) exata no eixo superior
-                    for _, obj in ipairs(blocoRaiz.Parent:GetChildren()) do
-                        local objPos = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
-                        -- Se a posição bater (com margem de erro pequena para não dar ban)
-                        if (objPos - posPlanta).Magnitude < 1.5 then
-                            alvoColheita = obj
-                            break
+                    local blocoRaiz = dados.Instancia
+                    if not blocoRaiz or not blocoRaiz.Parent then continue end
+                    
+                    -- Avalia apenas os blocos de terra da área selecionada
+                    if blocoRaiz.Name:lower():find("grass") or blocoRaiz.Name:lower():find("dirt") then
+                        local posPlanta = dados.Posicao + Vector3.new(0, Config.BLOCK_SIZE, 0)
+                        local plantaObj = nil
+
+                        for _, obj in ipairs(blocoRaiz.Parent:GetChildren()) do
+                            local objPos = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
+                            if (objPos - posPlanta).Magnitude < 1.5 then
+                                plantaObj = obj
+                                break
+                            end
+                        end
+
+                        if plantaObj then
+                            -- 1. Existe planta -> COLHER
+                            local payload = {
+                                dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
+                                player = LocalPlayer,
+                                model = plantaObj
+                            }
+                            pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
+                            task.wait(0.15)
+                        else
+                            -- 2. Não existe planta -> PLANTAR
+                            local nomeSemente = State.SementeSelecionada
+                            if nomeSemente and nomeSemente ~= "" and nomeSemente ~= "Nenhuma ferramenta encontrada" then
+                                local char = LocalPlayer.Character
+                                local tool = LocalPlayer.Backpack:FindFirstChild(nomeSemente) or (char and char:FindFirstChild(nomeSemente))
+                                
+                                if tool then
+                                    if char and tool.Parent == LocalPlayer.Backpack then
+                                        char.Humanoid:EquipTool(tool)
+                                        task.wait(0.1)
+                                    end
+                                    
+                                    -- CFrame PURO alinhado com a grelha do mundo, sem rotação "torta"
+                                    local targetCFrame = CFrame.new(dados.Posicao + Vector3.new(0, Config.BLOCK_SIZE, 0))
+                                    local payload = {
+                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
+                                        cframe = targetCFrame,
+                                        blockType = tool.Name,
+                                        upperBlock = false
+                                    }
+                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                    task.wait(0.15)
+                                end
+                            end
                         end
                     end
                 end
-
-                -- Se não achou planta nenhuma e o alvo continua sendo a terra, ignora e pula para o próximo
-                if alvoColheita.Name:lower():find("grass") or alvoColheita.Name:lower():find("dirt") then
-                    continue
-                end
-
-                local payload = {
-                    dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
-                    player = LocalPlayer,
-                    model = alvoColheita
-                }
-                pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
-                task.wait(0.05)
+                task.wait(2) -- Pausa de 2s para não sobrecarregar o servidor do jogo entre os ciclos
             end
-        end
-        if Manager then Manager:AtualizarStatus("Colheita finalizada!") end
-    end)
-end
-
-function Farmer:PlantarSementes()
-    local Manager = Bot.Modules.Manager
-    if not State.AncoraPart then return end
-    
-    local char = LocalPlayer.Character
-    if not char then return end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then
-        if Manager then Manager:AtualizarStatus("ERRO: Equipe a semente!") end
-        return
+            if Manager then Manager:AtualizarStatus("Auto-Fazenda Parada") end
+        end)
+    else
+        if Manager then Manager:AtualizarStatus("Ocioso") end
     end
-
-    if Manager then Manager:AtualizarStatus("Plantando: " .. tool.Name) end
-
-    task.spawn(function()
-        for _, dados in ipairs(State.ListaBlocos) do
-            local bloco = dados.Instancia
-            if bloco and bloco.Parent then
-                -- IA de Plantio: Herda o CFrame (eixos de rotação exatos) da terra e sobe 1 bloco
-                local baseCFrame = bloco:IsA("Model") and bloco:GetPivot() or bloco.CFrame
-                local targetCFrame = baseCFrame + Vector3.new(0, Config.BLOCK_SIZE, 0)
-                
-                local payload = {
-                    uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                    cframe = targetCFrame,
-                    blockType = tool.Name,
-                    upperBlock = false
-                }
-                pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                task.wait(0.05)
-            end
-        end
-        if Manager then Manager:AtualizarStatus("Plantio finalizado!") end
-    end)
 end
 
 return Farmer
