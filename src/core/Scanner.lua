@@ -49,7 +49,7 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     
     table.insert(State.MarcadoresVisuais, part)
     return part
-    end
+end
 
 function Scanner:MoverSeletor(direcao)
     if not State.AncoraPart then return end
@@ -57,10 +57,8 @@ function Scanner:MoverSeletor(direcao)
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
     local look = char.HumanoidRootPart.CFrame.LookVector
-    local frenteWorld = Vector3.new(0,0,0)
-    local direitaWorld = Vector3.new(0,0,0)
+    local frenteWorld, direitaWorld
     
-    -- Determina direções do mundo baseadas no olhar do jogador
     if math.abs(look.X) > math.abs(look.Z) then
         frenteWorld = Vector3.new(math.sign(look.X) * Config.BLOCK_SIZE, 0, 0)
         direitaWorld = Vector3.new(0, 0, math.sign(look.X) * Config.BLOCK_SIZE)
@@ -69,16 +67,16 @@ function Scanner:MoverSeletor(direcao)
         direitaWorld = Vector3.new(-math.sign(look.Z) * Config.BLOCK_SIZE, 0, 0)
     end
     
-    local deslocamento = Vector3.new(0,0,0)
-    if direcao == "Frente" then deslocamento = frenteWorld
-    elseif direcao == "Tras" then deslocamento = -frenteWorld
-    elseif direcao == "Esquerda" then deslocamento = -direitaWorld
-    elseif direcao == "Direita" then deslocamento = direitaWorld
-    elseif direcao == "Subir" then deslocamento = Vector3.new(0, Config.BLOCK_SIZE, 0)
-    elseif direcao == "Descer" then deslocamento = Vector3.new(0, -Config.BLOCK_SIZE, 0)
+    local d = Vector3.new(0,0,0)
+    if direcao == "Frente" then d = frenteWorld
+    elseif direcao == "Tras" then d = -frenteWorld
+    elseif direcao == "Esquerda" then d = -direitaWorld
+    elseif direcao == "Direita" then d = direitaWorld
+    elseif direcao == "Subir" then d = Vector3.new(0, Config.BLOCK_SIZE, 0)
+    elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
     
-    State.AncoraPart.Position = State.AncoraPart.Position + deslocamento
+    State.AncoraPart.Position = State.AncoraPart.Position + d
     if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
     self:EscanearArea()
 end
@@ -93,22 +91,23 @@ function Scanner:EscanearArea()
     end
     if not minhaIlha then return end
 
-    local areaCenter = State.AncoraPart.Position
-    local areaSize = State.AncoraPart.Size
-    local minCoord = areaCenter - (areaSize / 2)
-    local maxCoord = areaCenter + (areaSize / 2)
-
+    -- NOVA FÍSICA: Pega TUDO o que a caixa azul estiver tocando (Mesmo galhos de árvore)
+    local overlapParams = OverlapParams.new()
+    overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
+    overlapParams.FilterType = Enum.RaycastFilterType.Include
+    
+    local partsInBox = workspace:GetPartBoundsInBox(State.AncoraPart.CFrame, State.AncoraPart.Size, overlapParams)
+    
+    local blocosUnicos = {}
     local blocosEncontrados = {}
+    local Manager = Bot.Modules.Manager
 
-    for _, bloco in ipairs(minhaIlha.Blocks:GetChildren()) do
-        if bloco:IsA("BasePart") or bloco:IsA("Model") then
-            local pos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
-            
-            if pos.X >= minCoord.X - 0.1 and pos.X <= maxCoord.X + 0.1 and
-               pos.Y >= minCoord.Y - 0.1 and pos.Y <= maxCoord.Y + 0.1 and
-               pos.Z >= minCoord.Z - 0.1 and pos.Z <= maxCoord.Z + 0.1 then
-                table.insert(blocosEncontrados, { Instancia = bloco, Posicao = pos, Nome = bloco.Name })
-            end
+    for _, part in ipairs(partsInBox) do
+        local rootBlock = Manager:ObterBlocoRaiz(part)
+        if rootBlock and not blocosUnicos[rootBlock] then
+            blocosUnicos[rootBlock] = true
+            local pos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
+            table.insert(blocosEncontrados, { Instancia = rootBlock, Posicao = pos, Nome = rootBlock.Name })
         end
     end
 
@@ -139,26 +138,12 @@ function Scanner:CriarSeletorFrontal()
         dirVector = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
     end
 
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {char}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local ray = workspace:Raycast(hrp.Position, Vector3.new(0, -10, 0), params)
-    
-    local posExata = Vector3.new(0,0,0)
-    local Manager = Bot.Modules.Manager
-    
-    if ray and ray.Instance and Manager then
-        local rootBlock = Manager:ObterBlocoRaiz(ray.Instance)
-        local hitPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
-        posExata = hitPos + dirVector + Vector3.new(0, Config.BLOCK_SIZE, 0) 
-    else
-        posExata = hrp.Position + dirVector
-        posExata = Vector3.new(
-            math.round(posExata.X / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-            math.round(posExata.Y / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-            math.round(posExata.Z / Config.BLOCK_SIZE) * Config.BLOCK_SIZE
-        )
-    end
+    local posExata = hrp.Position + dirVector
+    posExata = Vector3.new(
+        math.round(posExata.X / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
+        math.round(posExata.Y / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
+        math.round(posExata.Z / Config.BLOCK_SIZE) * Config.BLOCK_SIZE
+    )
 
     self:LimparAncora()
     
@@ -179,33 +164,6 @@ function Scanner:CriarSeletorFrontal()
     State.CaixaVisual.Adornee = State.AncoraPart
     State.CaixaVisual.Parent = State.AncoraPart
 
-    State.Handles = Instance.new("Handles")
-    State.Handles.Color3 = Color3.fromRGB(255, 200, 50)
-    State.Handles.Style = Enum.HandlesStyle.Resize
-    State.Handles.Adornee = State.AncoraPart
-    State.Handles.Parent = CoreGui
-
-    local sizeInicial, cframeInicial
-    State.Handles.MouseButton1Down:Connect(function()
-        sizeInicial = State.AncoraPart.Size
-        cframeInicial = State.AncoraPart.CFrame
-    end)
-
-    State.Handles.MouseDrag:Connect(function(face, distancia)
-        local deltaSnap = math.floor(distancia / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE
-        if face == Enum.NormalId.Front or face == Enum.NormalId.Back then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(0, 0, deltaSnap)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(0, 0, deltaSnap / 2 * (face == Enum.NormalId.Front and -1 or 1))
-        elseif face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(0, deltaSnap, 0)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(0, deltaSnap / 2 * (face == Enum.NormalId.Top and 1 or -1), 0)
-        elseif face == Enum.NormalId.Right or face == Enum.NormalId.Left then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(deltaSnap, 0, 0)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(deltaSnap / 2 * (face == Enum.NormalId.Right and 1 or -1), 0, 0)
-        end
-    end)
-
-    State.Handles.MouseButton1Up:Connect(function() self:EscanearArea() end)
     self:EscanearArea()
 end
 

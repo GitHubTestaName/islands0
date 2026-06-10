@@ -23,63 +23,22 @@ function UI:SetStatusText(texto)
 end
 
 TabSeletor:CreateButton({
-    Name = "🟦 Gerar / Alinhar Cubo Azul",
+    Name = "🟦 Gerar Cubo Azul no Personagem",
     Callback = function()
         local Scanner = Bot.Modules.Scanner
         if Scanner then Scanner:CriarSeletorFrontal() end
     end,
 })
 
-TabSeletor:CreateSection("Controle por Teclado (Keybinds)")
-TabSeletor:CreateParagraph({
-    Title = "Dica de Movimentação Pro",
-    Content = "Use as setas do seu teclado para mover o cubo azul rapidamente sem precisar clicar na tela!"
-})
+TabSeletor:CreateSection("Mover Cubo (Horizontal)")
+TabSeletor:CreateButton({ Name = "Mover para Frente", Callback = function() Bot.Modules.Scanner:MoverSeletor("Frente") end })
+TabSeletor:CreateButton({ Name = "Mover para Tras", Callback = function() Bot.Modules.Scanner:MoverSeletor("Tras") end })
+TabSeletor:CreateButton({ Name = "Mover para Esquerda", Callback = function() Bot.Modules.Scanner:MoverSeletor("Esquerda") end })
+TabSeletor:CreateButton({ Name = "Mover para Direita", Callback = function() Bot.Modules.Scanner:MoverSeletor("Direita") end })
 
-TabSeletor:CreateKeybind({
-    Name = "Mover para Frente",
-    CurrentKeybind = "Up",
-    HoldToInteract = false,
-    Flag = "KeyFrente",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Frente") end end,
-})
-TabSeletor:CreateKeybind({
-    Name = "Mover para Tras",
-    CurrentKeybind = "Down",
-    HoldToInteract = false,
-    Flag = "KeyTras",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Tras") end end,
-})
-TabSeletor:CreateKeybind({
-    Name = "Mover para Esquerda",
-    CurrentKeybind = "Left",
-    HoldToInteract = false,
-    Flag = "KeyEsq",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Esquerda") end end,
-})
-TabSeletor:CreateKeybind({
-    Name = "Mover para Direita",
-    CurrentKeybind = "Right",
-    HoldToInteract = false,
-    Flag = "KeyDir",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Direita") end end,
-})
-
-TabSeletor:CreateSection("Controle Vertical (Altura)")
-TabSeletor:CreateKeybind({
-    Name = "Subir Cubo (+3)",
-    CurrentKeybind = "PageUp",
-    HoldToInteract = false,
-    Flag = "KeySubir",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Subir") end end,
-})
-TabSeletor:CreateKeybind({
-    Name = "Descer Cubo (-3)",
-    CurrentKeybind = "PageDown",
-    HoldToInteract = false,
-    Flag = "KeyDescer",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Descer") end end,
-})
+TabSeletor:CreateSection("Mover Cubo (Vertical)")
+TabSeletor:CreateButton({ Name = "Subir Cubo", Callback = function() Bot.Modules.Scanner:MoverSeletor("Subir") end })
+TabSeletor:CreateButton({ Name = "Descer Cubo", Callback = function() Bot.Modules.Scanner:MoverSeletor("Descer") end })
 
 -- ================= ABA 2: AÇÕES GERAIS =================
 local TabAcoes = Window:CreateTab("2. Ações", nil)
@@ -122,7 +81,7 @@ TabAcoes:CreateButton({
 local TabFazenda = Window:CreateTab("3. Fazenda", nil)
 
 TabFazenda:CreateButton({
-    Name = "🚜 Arar Terra Selecionada",
+    Name = "🚜 Arar Terra Manualmente",
     Callback = function()
         if Bot.Modules.Farmer then Bot.Modules.Farmer:ArarTerra() end
     end,
@@ -145,7 +104,7 @@ TabFazenda:CreateButton({
 })
 
 TabFazenda:CreateToggle({
-    Name = "🟢 Iniciar Auto-Fazenda (Colher + Plantar)",
+    Name = "🟢 Auto-Fazenda (Ara, Planta e Colhe)",
     CurrentValue = false,
     Flag = "ToggleFarmer",
     Callback = function(Value)
