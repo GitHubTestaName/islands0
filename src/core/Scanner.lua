@@ -11,9 +11,7 @@ local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
 function Scanner:LimparEnumeracao()
-    for _, obj in pairs(State.MarcadoresVisuais) do 
-        if obj then obj:Destroy() end 
-    end
+    for _, obj in pairs(State.MarcadoresVisuais) do if obj then obj:Destroy() end end
     State.MarcadoresVisuais = {}
     State.ListaBlocos = {}
 end
@@ -51,6 +49,38 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     
     table.insert(State.MarcadoresVisuais, part)
     return part
+    end
+
+function Scanner:MoverSeletor(direcao)
+    if not State.AncoraPart then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local look = char.HumanoidRootPart.CFrame.LookVector
+    local frenteWorld = Vector3.new(0,0,0)
+    local direitaWorld = Vector3.new(0,0,0)
+    
+    -- Determina direções do mundo baseadas no olhar do jogador
+    if math.abs(look.X) > math.abs(look.Z) then
+        frenteWorld = Vector3.new(math.sign(look.X) * Config.BLOCK_SIZE, 0, 0)
+        direitaWorld = Vector3.new(0, 0, math.sign(look.X) * Config.BLOCK_SIZE)
+    else
+        frenteWorld = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
+        direitaWorld = Vector3.new(-math.sign(look.Z) * Config.BLOCK_SIZE, 0, 0)
+    end
+    
+    local deslocamento = Vector3.new(0,0,0)
+    if direcao == "Frente" then deslocamento = frenteWorld
+    elseif direcao == "Tras" then deslocamento = -frenteWorld
+    elseif direcao == "Esquerda" then deslocamento = -direitaWorld
+    elseif direcao == "Direita" then deslocamento = direitaWorld
+    elseif direcao == "Subir" then deslocamento = Vector3.new(0, Config.BLOCK_SIZE, 0)
+    elseif direcao == "Descer" then deslocamento = Vector3.new(0, -Config.BLOCK_SIZE, 0)
+    end
+    
+    State.AncoraPart.Position = State.AncoraPart.Position + deslocamento
+    if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
+    self:EscanearArea()
 end
 
 function Scanner:EscanearArea()
@@ -59,10 +89,7 @@ function Scanner:EscanearArea()
     
     local minhaIlha = nil
     for _, island in pairs(Workspace:WaitForChild("Islands"):GetChildren()) do
-        if island:FindFirstChild("Blocks") then 
-            minhaIlha = island 
-            break 
-        end
+        if island:FindFirstChild("Blocks") then minhaIlha = island; break end
     end
     if not minhaIlha then return end
 
@@ -80,13 +107,11 @@ function Scanner:EscanearArea()
             if pos.X >= minCoord.X - 0.1 and pos.X <= maxCoord.X + 0.1 and
                pos.Y >= minCoord.Y - 0.1 and pos.Y <= maxCoord.Y + 0.1 and
                pos.Z >= minCoord.Z - 0.1 and pos.Z <= maxCoord.Z + 0.1 then
-               
                 table.insert(blocosEncontrados, { Instancia = bloco, Posicao = pos, Nome = bloco.Name })
             end
         end
     end
 
-    -- Ordenação espacial de mineração
     table.sort(blocosEncontrados, function(a, b)
         if math.abs(a.Posicao.Y - b.Posicao.Y) > 0.5 then return a.Posicao.Y > b.Posicao.Y end
         if math.abs(a.Posicao.Z - b.Posicao.Z) > 0.5 then return a.Posicao.Z < b.Posicao.Z end
@@ -180,9 +205,7 @@ function Scanner:CriarSeletorFrontal()
         end
     end)
 
-    State.Handles.MouseButton1Up:Connect(function() 
-        self:EscanearArea() 
-    end)
+    State.Handles.MouseButton1Up:Connect(function() self:EscanearArea() end)
     self:EscanearArea()
 end
 

@@ -22,25 +22,45 @@ function Manager:AtualizarStatus(texto)
     end
 end
 
--- LER INVENTÁRIO (Procura Ferramentas e Blocos)
-function Manager:GetInventoryTools()
+-- FILTRO DE INVENTÁRIO AVANÇADO
+function Manager:GetInventoryTools(filterType)
     local ferramentas = {}
     local guardadas = {}
     local LocalPlayer = Players.LocalPlayer
     
-    local function add(obj)
+    local function analisarItem(obj)
         if obj:IsA("Tool") and not guardadas[obj.Name] then
-            table.insert(ferramentas, obj.Name)
+            local eColocavel = obj:FindFirstChild("block-place") ~= nil
+            local nomeMinusculo = obj.Name:lower()
+            
+            -- Identifica se é semente pelo nome ou propriedades conhecidas
+            local eSemente = eColocavel and (
+                nomeMinusculo:find("seed") or 
+                nomeMinusculo:find("wheat") or 
+                nomeMinusculo:find("carrot") or 
+                nomeMinusculo:find("tomato") or 
+                nomeMinusculo:find("berry") or 
+                nomeMinusculo:find("onion") or 
+                nomeMinusculo:find("potato")
+            )
+            
+            if filterType == "Block" and eColocavel and not eSemente then
+                table.insert(ferramentas, obj.Name)
+            elseif filterType == "Seed" and eSemente then
+                table.insert(ferramentas, obj.Name)
+            elseif filterType == "All" then
+                table.insert(ferramentas, obj.Name)
+            end
             guardadas[obj.Name] = true
         end
     end
     
-    for _, obj in pairs(LocalPlayer.Backpack:GetChildren()) do add(obj) end
+    for _, obj in pairs(LocalPlayer.Backpack:GetChildren()) do analisarItem(obj) end
     if LocalPlayer.Character then
-        for _, obj in pairs(LocalPlayer.Character:GetChildren()) do add(obj) end
+        for _, obj in pairs(LocalPlayer.Character:GetChildren()) do analisarItem(obj) end
     end
     
-    if #ferramentas == 0 then return {"Nenhuma ferramenta encontrada"} end
+    if #ferramentas == 0 then return {"Nenhum item encontrado"} end
     return ferramentas
 end
 
