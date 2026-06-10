@@ -2,7 +2,6 @@
 local UI = {}
 local Bot = _G.IslandsBot
 
--- Importação segura da biblioteca Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Islands Automation (Modular)",
@@ -13,10 +12,13 @@ local Window = Rayfield:CreateWindow({
     }
 })
 
-local TabAutofarm = Window:CreateTab("Autofarm", nil)
+-- Criação das Abas
+local TabGeral = Window:CreateTab("Geral/Seletor", nil)
+local TabFarms = Window:CreateTab("Autofarms", nil)
+local TabAgricultura = Window:CreateTab("Agricultura", nil)
 
--- Elemento de texto dinâmico para os Status do Bot
-local ParagraphStatus = TabAutofarm:CreateParagraph({
+-- Elemento de status dinâmico
+local ParagraphStatus = TabGeral:CreateParagraph({
     Title = "Status do Sistema", 
     Content = "> Ocioso"
 })
@@ -28,55 +30,89 @@ function UI:SetStatusText(texto)
     })
 end
 
--- 1. Botão Seletor Frontal
-TabAutofarm:CreateButton({
-    Name = "1. Gerar/Alinhar Seletor Frontal",
+-- ==========================================
+-- ABA GERAL: Controles do Seletor
+-- ==========================================
+TabGeral:CreateButton({
+    Name = "Criar/Alinhar Seletor Frontal",
     Callback = function()
         local Scanner = Bot.Modules.Scanner
-        if Scanner then
-            Scanner:CriarSeletorFrontal()
-        end
+        if Scanner then Scanner:CriarSeletorFrontal() end
     end,
 })
 
--- 2. Toggle de Autofarm de Mineração
-local ToggleMinerar = TabAutofarm:CreateToggle({
-    Name = "2. Autofarm Mineração",
+TabGeral:CreateButton({
+    Name = "Limpar Seletor",
+    Callback = function()
+        local Scanner = Bot.Modules.Scanner
+        if Scanner then Scanner:LimparAncora() end
+    end,
+})
+
+-- ==========================================
+-- ABA AUTOFARMS: Mineração e Construção
+-- ==========================================
+TabFarms:CreateToggle({
+    Name = "Autofarm Mineração",
     CurrentValue = false,
     Flag = "ToggleMiner",
     Callback = function(Value)
         local Miner = Bot.Modules.Miner
-        if Miner then
-            local success = Miner:Alternar(Value)
-            if not success and Value == true then
-                -- Se falhar (ex: sem seletor), força o visual do toggle a desligar
-                warn("[UI] Falha ao iniciar autofarm. Seletor pode nao existir.")
-            end
-        end
+        if Miner then Miner:Alternar(Value) end
     end,
 })
 
--- 3. Botão para Construção (Place Blocks)
-TabAutofarm:CreateButton({
-    Name = "3. Preencher Area Selecionada",
+TabFarms:CreateButton({
+    Name = "Preencher Área (Colocar Blocos)",
     Callback = function()
         local Builder = Bot.Modules.Builder
-        if Builder then
-            Builder:ColocarAreaMarcada()
-        end
+        if Builder then Builder:ColocarAreaMarcada() end
     end,
 })
 
--- Botão de Finalização e Descarregamento (Clean-up)
-TabAutofarm:CreateButton({
+-- ==========================================
+-- ABA AGRICULTURA: Colheita, Replantio e Aração
+-- ==========================================
+TabAgricultura:CreateToggle({
+    Name = "Auto Colheita (Crops, Berries e Frutas)",
+    CurrentValue = false,
+    Flag = "ToggleHarvest",
+    Callback = function(Value)
+        local Harvester = Bot.Modules.Harvester
+        if Harvester then Harvester:SetAtivo(Value) end
+    end,
+})
+
+TabAgricultura:CreateToggle({
+    Name = "Auto Replantar (Segure a Semente na Mão)",
+    CurrentValue = false,
+    Flag = "ToggleReplant",
+    Callback = function(Value)
+        local Harvester = Bot.Modules.Harvester
+        if Harvester then Harvester:SetAutoReplant(Value) end
+    end,
+})
+
+TabAgricultura:CreateButton({
+    Name = "Arar Área Selecionada",
+    Callback = function()
+        local Plower = Bot.Modules.Plower
+        if Plower then Plower:ArarArea() end
+    end,
+})
+
+-- Botão global de encerramento do script
+TabGeral:CreateButton({
     Name = "Descarregar Script",
     Callback = function()
         local Scanner = Bot.Modules.Scanner
         local Miner = Bot.Modules.Miner
         local Builder = Bot.Modules.Builder
+        local Harvester = Bot.Modules.Harvester
 
         if Miner then Miner:Alternar(false) end
         if Builder then Builder:Cancelar() end
+        if Harvester then Harvester:SetAtivo(false) end
         if Scanner then Scanner:LimparAncora() end
         
         Rayfield:Destroy()

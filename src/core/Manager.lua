@@ -10,6 +10,10 @@ local NetManaged = ReplicatedStorage:WaitForChild("rbxts_include"):WaitForChild(
 Manager.HitRemote = NetManaged:WaitForChild("CLIENT_BLOCK_HIT_REQUEST")
 Manager.PlaceRemote = NetManaged:WaitForChild("CLIENT_BLOCK_PLACE_REQUEST")
 
+-- Novos remotes adicionados
+Manager.HarvestRemote = NetManaged:WaitForChild("CLIENT_HARVEST_CROP_REQUEST")
+Manager.PlowRemote = NetManaged:WaitForChild("CLIENT_PLOW_BLOCK_REQUEST")
+
 -- Fila de comandos
 Manager.Queue = {}
 Manager.IsProcessing = false
@@ -21,7 +25,6 @@ function Manager:AtualizarStatus(texto)
     end
 end
 
--- Adiciona uma função à fila de processamento sequencial
 function Manager:AdicionarFila(actionFunc)
     table.insert(self.Queue, actionFunc)
     if not self.IsProcessing then
@@ -42,7 +45,7 @@ function Manager:ProcessarProximo()
     task.spawn(function()
         local ok, err = pcall(tarefa)
         if not ok then
-            warn("[Manager] Erro ao executar tarefa da fila: " .. tostring(err))
+            warn("[Manager] Erro ao executar tarefa: " .. tostring(err))
         end
         self:ProcessarProximo()
     end)
@@ -53,11 +56,16 @@ function Manager:LimparFila()
     self.IsProcessing = false
 end
 
--- Função auxiliar: obter o bloco raiz real ignorando partes acessórias
+-- MELHORIA: Varre a hierarquia do objeto para cima até achar o bloco base real dentro de "Blocks"
+-- Isso faz com que troncos, folhas, frutas, colmeias e colisões apontem de forma única para a árvore raiz.
 function Manager:ObterBlocoRaiz(hitInstance)
     if not hitInstance then return nil end
-    if hitInstance.Parent and hitInstance.Parent.Parent and hitInstance.Parent.Parent.Name == "Blocks" then
-        return hitInstance.Parent
+    local current = hitInstance
+    while current and current.Parent do
+        if current.Parent.Name == "Blocks" then
+            return current -- Retorna o bloco real de nível superior (ex: treePlum, berryBush, grass)
+        end
+        current = current.Parent
     end
     return hitInstance
 end
