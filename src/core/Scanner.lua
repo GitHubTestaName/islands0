@@ -91,7 +91,6 @@ function Scanner:EscanearArea()
     end
     if not minhaIlha then return end
 
-    -- NOVA FÍSICA: Pega TUDO o que a caixa azul estiver tocando (Mesmo galhos de árvore)
     local overlapParams = OverlapParams.new()
     overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
     overlapParams.FilterType = Enum.RaycastFilterType.Include
@@ -138,12 +137,33 @@ function Scanner:CriarSeletorFrontal()
         dirVector = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
     end
 
-    local posExata = hrp.Position + dirVector
-    posExata = Vector3.new(
-        math.round(posExata.X / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-        math.round(posExata.Y / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-        math.round(posExata.Z / Config.BLOCK_SIZE) * Config.BLOCK_SIZE
-    )
+    -- NOVO: Raycast perfeito para encontrar o Grid do chão
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {char}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    local ray = workspace:Raycast(hrp.Position, Vector3.new(0, -20, 0), params)
+    
+    local posExata
+    local Manager = Bot.Modules.Manager
+    
+    if ray and ray.Instance and Manager then
+        local rootBlock = Manager:ObterBlocoRaiz(ray.Instance)
+        if rootBlock then
+            local hitPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
+            -- Crava o cubo na grid do bloco que você está pisando
+            posExata = hitPos + dirVector
+        end
+    end
+
+    -- Se você estiver voando no void e o raycast falhar, ele usa a matemática pura
+    if not posExata then
+        posExata = hrp.Position + dirVector
+        posExata = Vector3.new(
+            math.floor(posExata.X / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE,
+            math.floor(posExata.Y / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE,
+            math.floor(posExata.Z / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE
+        )
+    end
 
     self:LimparAncora()
     

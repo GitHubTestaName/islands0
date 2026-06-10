@@ -63,7 +63,6 @@ function Farmer:AlternarAutoFazenda(valor)
                         end
 
                         if plantaObj then
-                            -- ETAPA 1: Tem planta, então Colhe.
                             local payload = {
                                 dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                 player = LocalPlayer,
@@ -72,13 +71,10 @@ function Farmer:AlternarAutoFazenda(valor)
                             pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
                             task.wait(0.1)
                         else
-                            -- Não tem planta...
                             if terraBruta then
-                                -- ETAPA 2: É terra normal? Ara primeiro.
                                 pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoRaiz }) end)
                                 task.wait(0.1)
                             elseif terraArada then
-                                -- ETAPA 3: Já está arada? Planta!
                                 local nomeSemente = State.SementeSelecionada
                                 if nomeSemente and nomeSemente ~= "" and nomeSemente ~= "Nenhum item encontrado" then
                                     local char = LocalPlayer.Character
@@ -110,6 +106,7 @@ function Farmer:AlternarAutoFazenda(valor)
             if Manager then Manager:AtualizarStatus("Auto-Fazenda Desligada") end
         end)
     else
+        -- AQUi ESTAVA O ERRO! Corrigido para "AtualizarStatus"
         if Manager then Manager:AtualizarStatus("Ocioso") end
     end
 end
