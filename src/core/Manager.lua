@@ -22,7 +22,6 @@ function Manager:AtualizarStatus(texto)
     end
 end
 
--- O NOVO FILTRO DE INVENTÁRIO CORRIGIDO
 function Manager:GetInventoryTools(filterType)
     local ferramentas = {}
     local guardadas = {}
@@ -30,16 +29,9 @@ function Manager:GetInventoryTools(filterType)
     
     local function analisarItem(obj)
         if obj:IsA("Tool") and not guardadas[obj.Name] then
-            -- Verifica os scripts internos que você descobriu!
-            local temScriptBloco = obj:FindFirstChild("block-place") ~= nil
-            local temScriptSemente = obj:FindFirstChild("seeds") ~= nil
-            local nomeMinusculo = obj.Name:lower()
-            
-            -- É semente se tiver o script "seeds" ou o nome for sugestivo
-            local eSemente = temScriptSemente or nomeMinusculo:find("seed") or nomeMinusculo:find("wheat")
-            
-            -- É bloco colocável se tiver o block-place E não for semente
-            local eBloco = temScriptBloco and not eSemente
+            -- O Filtro Absoluto que você sugeriu!
+            local eBloco = obj:FindFirstChild("block-place") ~= nil
+            local eSemente = obj:FindFirstChild("seeds") ~= nil
             
             if filterType == "Block" and eBloco then
                 table.insert(ferramentas, obj.Name)
@@ -81,10 +73,24 @@ function Manager:ProcessarProximo()
     end)
 end
 
+-- A SUA LÓGICA DE DETECÇÃO DA ÁRVORE AQUI:
 function Manager:ObterBlocoRaiz(hitInstance)
     if not hitInstance then return nil end
-    if hitInstance.Parent and hitInstance.Parent.Parent and hitInstance.Parent.Parent.Name == "Blocks" then
-        return hitInstance.Parent
+    
+    -- 1. Verifica se é parte física de uma Árvore (galho, folha, tronco)
+    local pastaColisao = hitInstance:FindFirstAncestor("CollisionBoxes")
+    if pastaColisao and pastaColisao.Parent then
+        -- Se estiver dentro do CollisionBoxes, o bloco real é o PAI da pasta!
+        return pastaColisao.Parent 
+    end
+    
+    -- 2. Busca padrão para blocos normais
+    local current = hitInstance
+    while current and current.Parent do
+        if current.Parent.Name == "Blocks" then
+            return current
+        end
+        current = current.Parent
     end
     return hitInstance
 end

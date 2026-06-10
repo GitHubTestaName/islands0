@@ -51,7 +51,6 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     return part
 end
 
--- MÁGICA: Pega o offset matemático perfeito da ilha atual
 function Scanner:AlinharParaGrid(posicao)
     local offsetGrid = Vector3.new(0, 0, 0)
     local minhaIlha = nil
@@ -99,8 +98,8 @@ function Scanner:MoverSeletor(direcao)
     elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
     
-    -- Aplica o movimento e re-aloca na grid infalivel
-    State.AncoraPart.Position = self:AlinharParaGrid(State.AncoraPart.Position + d)
+    -- Movimenta pelo Grid exato sem forçar centro arredondado para evitar pulos
+    State.AncoraPart.Position = State.AncoraPart.Position + d
     if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
     self:EscanearArea()
 end
@@ -119,7 +118,9 @@ function Scanner:EscanearArea()
     overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
     overlapParams.FilterType = Enum.RaycastFilterType.Include
     
-    local partsInBox = workspace:GetPartBoundsInBox(State.AncoraPart.CFrame, State.AncoraPart.Size, overlapParams)
+    -- CORREÇÃO DOS "9 BLOCOS": Reduz o tamanho de verificação em 0.2 studs para não encostar nos vizinhos!
+    local querySize = State.AncoraPart.Size - Vector3.new(0.2, 0.2, 0.2)
+    local partsInBox = workspace:GetPartBoundsInBox(State.AncoraPart.CFrame, querySize, overlapParams)
     
     local blocosUnicos = {}
     local blocosEncontrados = {}
@@ -177,7 +178,7 @@ function Scanner:CriarSeletorFrontal()
         end
     end
 
-    -- ALINHAMENTO INFALÍVEL
+    -- ALINHAMENTO INFALÍVEL DA CRIAÇÃO INICIAL
     posExata = self:AlinharParaGrid(posExata)
 
     self:LimparAncora()
@@ -225,8 +226,9 @@ function Scanner:CriarSeletorFrontal()
         end
     end)
 
+    -- AQUI FOI O SEGREDO DO "PULO" CORRIGIDO:
+    -- Quando você soltar o botão de esticar a caixa, ele não arredonda o centro forçadamente!
     State.Handles.MouseButton1Up:Connect(function() 
-        State.AncoraPart.Position = self:AlinharParaGrid(State.AncoraPart.Position)
         self:EscanearArea() 
     end)
     self:EscanearArea()
