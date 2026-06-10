@@ -23,7 +23,9 @@ function Miner:ExecutarLoop()
             if not bloco or not bloco:IsDescendantOf(workspace) then continue end
 
             local healthObj = bloco:FindFirstChild("Health")
-            local partTarget = bloco:FindFirstChild("Top") or bloco:FindFirstChild("trunk") or bloco
+            
+            -- INTELIGÊNCIA: Se for árvore, pega a parte certa para o remote!
+            local partTarget = bloco:FindFirstChild("wood") or bloco:FindFirstChild("trunk") or bloco:FindFirstChildWhichIsA("BasePart", true) or bloco
             local tentativas = 0
             
             while bloco and bloco:IsDescendantOf(workspace) do
@@ -49,7 +51,7 @@ function Miner:ExecutarLoop()
                 local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
                 local offsetX = math.random(-15, 15) / 100
                 local offsetZ = math.random(-15, 15) / 100
-                local hitPosition = basePos + Vector3.new(offsetX, bloco.Size.Y / 2, offsetZ)
+                local hitPosition = basePos + Vector3.new(offsetX, 0, offsetZ)
 
                 local payload = {
                     Xoeoxuqilfgenamojfjmj = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nohIstskUiftvgjy",

@@ -5,7 +5,7 @@ local Bot = _G.IslandsBot
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Islands Automation",
-    LoadingTitle = "Carregando Módulos...",
+    LoadingTitle = "Carregando Modulos...",
     LoadingSubtitle = "Modular Framework",
     ConfigurationSaving = { Enabled = false }
 })
@@ -31,20 +31,20 @@ TabSeletor:CreateButton({
 })
 
 TabSeletor:CreateSection("Mover Cubo (Horizontal)")
-TabSeletor:CreateButton({ Name = "Mover para Frente", Callback = function() Bot.Modules.Scanner:MoverSeletor("Frente") end })
-TabSeletor:CreateButton({ Name = "Mover para Tras", Callback = function() Bot.Modules.Scanner:MoverSeletor("Tras") end })
-TabSeletor:CreateButton({ Name = "Mover para Esquerda", Callback = function() Bot.Modules.Scanner:MoverSeletor("Esquerda") end })
-TabSeletor:CreateButton({ Name = "Mover para Direita", Callback = function() Bot.Modules.Scanner:MoverSeletor("Direita") end })
+TabSeletor:CreateButton({ Name = "^ Frente", Callback = function() Bot.Modules.Scanner:MoverSeletor("Frente") end })
+TabSeletor:CreateButton({ Name = "v Tras", Callback = function() Bot.Modules.Scanner:MoverSeletor("Tras") end })
+TabSeletor:CreateButton({ Name = "< Esquerda", Callback = function() Bot.Modules.Scanner:MoverSeletor("Esquerda") end })
+TabSeletor:CreateButton({ Name = "> Direita", Callback = function() Bot.Modules.Scanner:MoverSeletor("Direita") end })
 
 TabSeletor:CreateSection("Mover Cubo (Vertical)")
 TabSeletor:CreateButton({ Name = "Subir Cubo", Callback = function() Bot.Modules.Scanner:MoverSeletor("Subir") end })
 TabSeletor:CreateButton({ Name = "Descer Cubo", Callback = function() Bot.Modules.Scanner:MoverSeletor("Descer") end })
 
--- ================= ABA 2: AÇÕES GERAIS =================
-local TabAcoes = Window:CreateTab("2. Ações", nil)
+-- ================= ABA 2: ACOES GERAIS =================
+local TabAcoes = Window:CreateTab("2. Acoes", nil)
 
 TabAcoes:CreateToggle({
-    Name = "⛏️ Autofarm Mineração (Loop)",
+    Name = "⛏️ Autofarm Mineracao (Loop)",
     CurrentValue = false,
     Flag = "ToggleMiner",
     Callback = function(Value)
@@ -53,7 +53,7 @@ TabAcoes:CreateToggle({
     end,
 })
 
-TabAcoes:CreateSection("Construção Automática")
+TabAcoes:CreateSection("Construcao Automatica")
 local DropdownBlocos = TabAcoes:CreateDropdown({
     Name = "Bloco Selecionado",
     Options = {"Nenhum item encontrado"},
@@ -63,14 +63,14 @@ local DropdownBlocos = TabAcoes:CreateDropdown({
 })
 
 TabAcoes:CreateButton({
-    Name = "🔄 Atualizar Inventário de Blocos",
+    Name = "🔄 Atualizar Inventario de Blocos",
     Callback = function()
         if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block"), true) end
     end,
 })
 
 TabAcoes:CreateButton({
-    Name = "🔨 Preencher Área Selecionada",
+    Name = "🔨 Preencher Area Selecionada",
     Callback = function()
         local Builder = Bot.Modules.Builder
         if Builder then Builder:ColocarAreaMarcada() end
@@ -97,7 +97,7 @@ local DropdownSementes = TabFazenda:CreateDropdown({
 })
 
 TabFazenda:CreateButton({
-    Name = "🔄 Atualizar Inventário de Sementes",
+    Name = "🔄 Atualizar Inventario de Sementes",
     Callback = function()
         if Bot.Modules.Manager then DropdownSementes:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"), true) end
     end,
