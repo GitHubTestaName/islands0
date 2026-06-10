@@ -50,14 +50,16 @@ local function carregarModulo(caminho)
 end
 
 -- Carregamento sequencial dos módulos
+-- Carregamento sequencial dos módulos
 task.spawn(function()
     print("[Loader] Carregando modulos do backend...")
     _G.IslandsBot.Modules.Manager = carregarModulo("src/core/Manager.lua")
     _G.IslandsBot.Modules.Scanner = carregarModulo("src/core/Scanner.lua")
     _G.IslandsBot.Modules.Miner = carregarModulo("src/actions/Miner.lua")
     _G.IslandsBot.Modules.Builder = carregarModulo("src/actions/Builder.lua")
+    _G.IslandsBot.Modules.Farmer = carregarModulo("src/actions/Farmer.lua") -- NOVO AQUI
     
-    print("[Loader] Inicializando interface do usuário...")
+    print("[Loader] Inicializando interface do usuario...")
     _G.IslandsBot.Modules.UI = carregarModulo("src/ui/Window.lua")
     print("[Loader] Inicializacao concluida.")
 end)
