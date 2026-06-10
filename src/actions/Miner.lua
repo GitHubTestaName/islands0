@@ -22,10 +22,11 @@ function Miner:ExecutarLoop()
             local bloco = dados.Instancia
             if not bloco or not bloco:IsDescendantOf(workspace) then continue end
 
+            -- Encontra a vida raiz (na árvore ou no minério)
             local healthObj = bloco:FindFirstChild("Health")
             
-            -- INTELIGÊNCIA: Se for árvore, pega a parte certa para o remote!
-            local partTarget = bloco:FindFirstChild("wood") or bloco:FindFirstChild("trunk") or bloco:FindFirstChildWhichIsA("BasePart", true) or bloco
+            -- EXATAMENTE O QUE VOCÊ PEDIU: Enviamos o Pai (O Modelo Principal) inteiro!
+            local partTarget = bloco 
             local tentativas = 0
             
             while bloco and bloco:IsDescendantOf(workspace) do

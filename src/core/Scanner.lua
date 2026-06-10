@@ -51,6 +51,29 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     return part
 end
 
+-- MÁGICA: Pega o offset matemático perfeito da ilha atual
+function Scanner:AlinharParaGrid(posicao)
+    local offsetGrid = Vector3.new(0, 0, 0)
+    local minhaIlha = nil
+    for _, island in pairs(Workspace:WaitForChild("Islands"):GetChildren()) do
+        if island:FindFirstChild("Blocks") then minhaIlha = island; break end
+    end
+    
+    if minhaIlha then
+        local umBloco = minhaIlha.Blocks:FindFirstChildWhichIsA("Model") or minhaIlha.Blocks:FindFirstChildWhichIsA("BasePart")
+        if umBloco then
+            local bp = umBloco:IsA("Model") and umBloco:GetPivot().Position or umBloco.Position
+            offsetGrid = Vector3.new(bp.X % Config.BLOCK_SIZE, bp.Y % Config.BLOCK_SIZE, bp.Z % Config.BLOCK_SIZE)
+        end
+    end
+    
+    local nx = math.floor((posicao.X - offsetGrid.X) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.X
+    local ny = math.floor((posicao.Y - offsetGrid.Y) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.Y
+    local nz = math.floor((posicao.Z - offsetGrid.Z) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.Z
+    
+    return Vector3.new(nx, ny, nz)
+end
+
 function Scanner:MoverSeletor(direcao)
     if not State.AncoraPart then return end
     local char = LocalPlayer.Character
@@ -76,7 +99,8 @@ function Scanner:MoverSeletor(direcao)
     elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
     
-    State.AncoraPart.Position = State.AncoraPart.Position + d
+    -- Aplica o movimento e re-aloca na grid infalivel
+    State.AncoraPart.Position = self:AlinharParaGrid(State.AncoraPart.Position + d)
     if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
     self:EscanearArea()
 end
@@ -137,13 +161,13 @@ function Scanner:CriarSeletorFrontal()
         dirVector = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
     end
 
+    local posExata = hrp.Position + dirVector
+    local Manager = Bot.Modules.Manager
+    
     local params = RaycastParams.new()
     params.FilterDescendantsInstances = {char}
     params.FilterType = Enum.RaycastFilterType.Exclude
     local ray = workspace:Raycast(hrp.Position, Vector3.new(0, -20, 0), params)
-    
-    local posExata = hrp.Position + dirVector
-    local Manager = Bot.Modules.Manager
     
     if ray and ray.Instance and Manager then
         local rootBlock = Manager:ObterBlocoRaiz(ray.Instance)
@@ -153,12 +177,8 @@ function Scanner:CriarSeletorFrontal()
         end
     end
 
-    -- TRAVA MATEMÁTICA DA GRID: Nunca vai falhar, sempre ficará no grid de 3.
-    posExata = Vector3.new(
-        math.round(posExata.X / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-        math.round(posExata.Y / Config.BLOCK_SIZE) * Config.BLOCK_SIZE,
-        math.round(posExata.Z / Config.BLOCK_SIZE) * Config.BLOCK_SIZE
-    )
+    -- ALINHAMENTO INFALÍVEL
+    posExata = self:AlinharParaGrid(posExata)
 
     self:LimparAncora()
     
@@ -179,7 +199,6 @@ function Scanner:CriarSeletorFrontal()
     State.CaixaVisual.Adornee = State.AncoraPart
     State.CaixaVisual.Parent = State.AncoraPart
 
-    -- HANDLES RESTAURADOS (Bolinhas Amarelas!)
     State.Handles = Instance.new("Handles")
     State.Handles.Color3 = Color3.fromRGB(255, 200, 50)
     State.Handles.Style = Enum.HandlesStyle.Resize
@@ -207,6 +226,7 @@ function Scanner:CriarSeletorFrontal()
     end)
 
     State.Handles.MouseButton1Up:Connect(function() 
+        State.AncoraPart.Position = self:AlinharParaGrid(State.AncoraPart.Position)
         self:EscanearArea() 
     end)
     self:EscanearArea()
