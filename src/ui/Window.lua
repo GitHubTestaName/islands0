@@ -4,16 +4,16 @@ local Bot = _G.IslandsBot
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-    Name = "Islands Automation (Modular)",
-    LoadingTitle = "Carregando Modulos...",
-    LoadingSubtitle = "by Islands Script",
+    Name = "Islands Automation",
+    LoadingTitle = "Carregando Módulos...",
+    LoadingSubtitle = "Modular Framework",
     ConfigurationSaving = { Enabled = false }
 })
 
--- ================= ABA PRINCIPAL =================
-local TabAutofarm = Window:CreateTab("Principal", nil)
+-- ================= ABA 1: SELETOR ESPACIAL =================
+local TabSeletor = Window:CreateTab("1. Seletor", nil)
 
-local ParagraphStatus = TabAutofarm:CreateParagraph({
+local ParagraphStatus = TabSeletor:CreateParagraph({
     Title = "Status do Sistema", 
     Content = "> Ocioso"
 })
@@ -22,79 +22,70 @@ function UI:SetStatusText(texto)
     ParagraphStatus:Set({ Title = "Status do Sistema", Content = "> " .. tostring(texto) })
 end
 
-TabAutofarm:CreateButton({
-    Name = "1. Gerar Seletor Frontal",
+TabSeletor:CreateButton({
+    Name = "🟦 Gerar / Alinhar Cubo Azul",
     Callback = function()
         local Scanner = Bot.Modules.Scanner
         if Scanner then Scanner:CriarSeletorFrontal() end
     end,
 })
 
--- SEÇÃO DE MOVIMENTAÇÃO DO SELETOR
-local SecMover = TabAutofarm:CreateSection("Controle Direcional do Seletor")
+TabSeletor:CreateSection("Controle por Teclado (Keybinds)")
+TabSeletor:CreateParagraph({
+    Title = "Dica de Movimentação Pro",
+    Content = "Use as setas do seu teclado para mover o cubo azul rapidamente sem precisar clicar na tela!"
+})
 
-TabAutofarm:CreateButton({
-    Name = "          [^] Frente",
+TabSeletor:CreateKeybind({
+    Name = "Mover para Frente",
+    CurrentKeybind = "Up",
+    HoldToInteract = false,
+    Flag = "KeyFrente",
     Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Frente") end end,
 })
-TabAutofarm:CreateButton({
-    Name = "[<] Esquerda    |    [>] Direita",
-    Callback = function() 
-        -- Como o Rayfield executa em clique único, dividimos em botões separados abaixo para evitar confusão visual
-    end,
-})
-TabAutofarm:CreateButton({
-    Name = "     [<] Mover para Esquerda",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Esquerda") end end,
-})
-TabAutofarm:CreateButton({
-    Name = "     [>] Mover para Direita",
-    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Direita") end end,
-})
-TabAutofarm:CreateButton({
-    Name = "          [v] Tras",
+TabSeletor:CreateKeybind({
+    Name = "Mover para Tras",
+    CurrentKeybind = "Down",
+    HoldToInteract = false,
+    Flag = "KeyTras",
     Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Tras") end end,
 })
+TabSeletor:CreateKeybind({
+    Name = "Mover para Esquerda",
+    CurrentKeybind = "Left",
+    HoldToInteract = false,
+    Flag = "KeyEsq",
+    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Esquerda") end end,
+})
+TabSeletor:CreateKeybind({
+    Name = "Mover para Direita",
+    CurrentKeybind = "Right",
+    HoldToInteract = false,
+    Flag = "KeyDir",
+    Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Direita") end end,
+})
 
-local SecMoverVertical = TabAutofarm:CreateSection("Eixo Vertical (Separado)")
-TabAutofarm:CreateButton({
-    Name = "Subir Altura (+3)",
+TabSeletor:CreateSection("Controle Vertical (Altura)")
+TabSeletor:CreateKeybind({
+    Name = "Subir Cubo (+3)",
+    CurrentKeybind = "PageUp",
+    HoldToInteract = false,
+    Flag = "KeySubir",
     Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Subir") end end,
 })
-TabAutofarm:CreateButton({
-    Name = "Descer Altura (-3)",
+TabSeletor:CreateKeybind({
+    Name = "Descer Cubo (-3)",
+    CurrentKeybind = "PageDown",
+    HoldToInteract = false,
+    Flag = "KeyDescer",
     Callback = function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Descer") end end,
 })
 
-local SecConstruir = TabAutofarm:CreateSection("Automacao de Construcao")
+-- ================= ABA 2: AÇÕES GERAIS =================
+local TabAcoes = Window:CreateTab("2. Ações", nil)
 
-local DropdownBlocos = TabAutofarm:CreateDropdown({
-    Name = "Filtrar Bloco para Construir",
-    Options = {"Nenhum item encontrado"},
-    CurrentOption = {"Nenhum item encontrado"},
-    MultipleOptions = false,
-    Callback = function(Option) Bot.State.BlocoSelecionado = Option[1] end,
-})
-
-TabAutofarm:CreateButton({
-    Name = "🔄 Atualizar Blocos do Inventario",
-    Callback = function()
-        if Bot.Modules.Manager then
-            DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block"), true)
-        end
-    end,
-})
-
-TabAutofarm:CreateButton({
-    Name = "3. Preencher Area Selecionada",
-    Callback = function()
-        local Builder = Bot.Modules.Builder
-        if Builder then Builder:ColocarAreaMarcada() end
-    end,
-})
-
-TabAutofarm:CreateToggle({
-    Name = "Autofarm Mineracao",
+TabAcoes:CreateToggle({
+    Name = "⛏️ Autofarm Mineração (Loop)",
     CurrentValue = false,
     Flag = "ToggleMiner",
     Callback = function(Value)
@@ -103,18 +94,43 @@ TabAutofarm:CreateToggle({
     end,
 })
 
--- ================= ABA FAZENDA INTELIGENTE =================
-local TabFazenda = Window:CreateTab("Fazenda", nil)
+TabAcoes:CreateSection("Construção Automática")
+local DropdownBlocos = TabAcoes:CreateDropdown({
+    Name = "Bloco Selecionado",
+    Options = {"Nenhum item encontrado"},
+    CurrentOption = {"Nenhum item encontrado"},
+    MultipleOptions = false,
+    Callback = function(Option) Bot.State.BlocoSelecionado = Option[1] end,
+})
+
+TabAcoes:CreateButton({
+    Name = "🔄 Atualizar Inventário de Blocos",
+    Callback = function()
+        if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block"), true) end
+    end,
+})
+
+TabAcoes:CreateButton({
+    Name = "🔨 Preencher Área Selecionada",
+    Callback = function()
+        local Builder = Bot.Modules.Builder
+        if Builder then Builder:ColocarAreaMarcada() end
+    end,
+})
+
+-- ================= ABA 3: FAZENDA =================
+local TabFazenda = Window:CreateTab("3. Fazenda", nil)
 
 TabFazenda:CreateButton({
-    Name = "Arar Terra Selecionada",
+    Name = "🚜 Arar Terra Selecionada",
     Callback = function()
         if Bot.Modules.Farmer then Bot.Modules.Farmer:ArarTerra() end
     end,
 })
 
+TabFazenda:CreateSection("Sementes e Autofarm")
 local DropdownSementes = TabFazenda:CreateDropdown({
-    Name = "Filtrar Semente para Plantio",
+    Name = "Semente Selecionada",
     Options = {"Nenhum item encontrado"},
     CurrentOption = {"Nenhum item encontrado"},
     MultipleOptions = false,
@@ -122,16 +138,14 @@ local DropdownSementes = TabFazenda:CreateDropdown({
 })
 
 TabFazenda:CreateButton({
-    Name = "🔄 Atualizar Sementes do Inventario",
+    Name = "🔄 Atualizar Inventário de Sementes",
     Callback = function()
-        if Bot.Modules.Manager then
-            DropdownSementes:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"), true)
-        end
+        if Bot.Modules.Manager then DropdownSementes:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"), true) end
     end,
 })
 
 TabFazenda:CreateToggle({
-    Name = "🟢 Iniciar Auto-Fazenda Loop (Colher + Plantar)",
+    Name = "🟢 Iniciar Auto-Fazenda (Colher + Plantar)",
     CurrentValue = false,
     Flag = "ToggleFarmer",
     Callback = function(Value)
@@ -140,8 +154,11 @@ TabFazenda:CreateToggle({
     end,
 })
 
-TabAutofarm:CreateButton({
-    Name = "Descarregar Script",
+-- ================= ABA 4: SISTEMA =================
+local TabSistema = Window:CreateTab("4. Sistema", nil)
+
+TabSistema:CreateButton({
+    Name = "Descarregar Script e Limpar Tela",
     Callback = function()
         if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(false) end
         if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(false) end

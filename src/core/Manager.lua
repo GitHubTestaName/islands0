@@ -22,7 +22,7 @@ function Manager:AtualizarStatus(texto)
     end
 end
 
--- FILTRO DE INVENTÁRIO AVANÇADO
+-- O NOVO FILTRO DE INVENTÁRIO CORRIGIDO
 function Manager:GetInventoryTools(filterType)
     local ferramentas = {}
     local guardadas = {}
@@ -30,21 +30,18 @@ function Manager:GetInventoryTools(filterType)
     
     local function analisarItem(obj)
         if obj:IsA("Tool") and not guardadas[obj.Name] then
-            local eColocavel = obj:FindFirstChild("block-place") ~= nil
+            -- Verifica os scripts internos que você descobriu!
+            local temScriptBloco = obj:FindFirstChild("block-place") ~= nil
+            local temScriptSemente = obj:FindFirstChild("seeds") ~= nil
             local nomeMinusculo = obj.Name:lower()
             
-            -- Identifica se é semente pelo nome ou propriedades conhecidas
-            local eSemente = eColocavel and (
-                nomeMinusculo:find("seed") or 
-                nomeMinusculo:find("wheat") or 
-                nomeMinusculo:find("carrot") or 
-                nomeMinusculo:find("tomato") or 
-                nomeMinusculo:find("berry") or 
-                nomeMinusculo:find("onion") or 
-                nomeMinusculo:find("potato")
-            )
+            -- É semente se tiver o script "seeds" ou o nome for sugestivo
+            local eSemente = temScriptSemente or nomeMinusculo:find("seed") or nomeMinusculo:find("wheat")
             
-            if filterType == "Block" and eColocavel and not eSemente then
+            -- É bloco colocável se tiver o block-place E não for semente
+            local eBloco = temScriptBloco and not eSemente
+            
+            if filterType == "Block" and eBloco then
                 table.insert(ferramentas, obj.Name)
             elseif filterType == "Seed" and eSemente then
                 table.insert(ferramentas, obj.Name)
