@@ -36,16 +36,26 @@ function Farmer:AlternarAutoFazenda(valor)
             while State.AutoFarmingCrops do
                 if not State.AncoraPart then break end
 
+                -- PRÉ-EQUIPAMENTO: Previne o erro "Something unexpectedly tried to set the parent"
+                -- Equipa a ferramenta apenas uma vez no início do ciclo, fora da pressa do loop.
+                local nomeSemente = State.SementeSelecionada
+                local char = LocalPlayer.Character
+                local toolEmUso = nil
+                
+                if nomeSemente and nomeSemente ~= "" and nomeSemente ~= "Nenhum item encontrado" then
+                    toolEmUso = (char and char:FindFirstChild(nomeSemente)) or LocalPlayer.Backpack:FindFirstChild(nomeSemente)
+                    if toolEmUso and char and toolEmUso.Parent == LocalPlayer.Backpack then
+                        char.Humanoid:EquipTool(toolEmUso)
+                        task.wait(0.5) -- Espera o Roblox mover a semente com calma e segurança
+                    end
+                end
+
                 for _, dados in ipairs(State.ListaBlocos) do
                     if not State.AutoFarmingCrops then break end
                     
                     local blocoRaiz = dados.Instancia
                     
-                    -- =================================================================
-                    -- SISTEMA DE CURA DE MEMÓRIA (A solução da sua descoberta!)
-                    -- Se a grama foi deletada pelo servidor para virar 'soil', 
-                    -- o bloco morre. Nós capturamos o novo bloco na mesma posição.
-                    -- =================================================================
+                    -- SISTEMA DE CURA DE MEMÓRIA (Auto-Heal)
                     if not blocoRaiz or not blocoRaiz:IsDescendantOf(workspace) then
                         local partes = workspace:GetPartBoundsInRadius(dados.Posicao, 0.5)
                         local novoBloco = nil
@@ -61,13 +71,11 @@ function Farmer:AlternarAutoFazenda(valor)
                             end
                         end
                         
-                        -- Atualiza a memória do bot com o novo 'soil'
                         if novoBloco then
                             dados.Instancia = novoBloco
                             dados.Nome = novoBloco.Name
                             blocoRaiz = novoBloco
                         else
-                            -- Se realmente não tem nada lá, ignora
                             continue
                         end
                     end
@@ -93,7 +101,7 @@ function Farmer:AlternarAutoFazenda(valor)
                         end
 
                         if plantaObj then
-                            -- ETAPA 1: Tem planta, então Colhe
+                            -- ETAPA 1: Colher
                             local payload = {
                                 dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                 player = LocalPlayer,
@@ -102,36 +110,27 @@ function Farmer:AlternarAutoFazenda(valor)
                             pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
                             task.wait(0.1)
                         else
-                            -- Não tem planta
                             if terraBruta then
-                                -- ETAPA 2: Grama normal, envia o remote de Arar!
+                                -- ETAPA 2: Arar
                                 pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoRaiz }) end)
                                 task.wait(0.1)
                             elseif terraArada then
-                                -- ETAPA 3: Já é Soil, então planta usando o CFrame Exato!
-                                local nomeSemente = State.SementeSelecionada
-                                if nomeSemente and nomeSemente ~= "" and nomeSemente ~= "Nenhum item encontrado" then
-                                    local char = LocalPlayer.Character
-                                    local tool = LocalPlayer.Backpack:FindFirstChild(nomeSemente) or (char and char:FindFirstChild(nomeSemente))
+                                -- ETAPA 3: Plantar
+                                if toolEmUso then
+                                    -- A MÁGICA DOS NOMES: Corta a palavra "Seeds"
+                                    -- Exemplo: "wheatSeeds" -> "wheat"
+                                    local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
                                     
-                                    if tool then
-                                        if char and tool.Parent == LocalPlayer.Backpack then
-                                            char.Humanoid:EquipTool(tool)
-                                            task.wait(0.05)
-                                        end
-                                        
-                                        -- CFrame Puro, sem rotações malucas, espelhando perfeitamente a Terra
-                                        local targetCFrame = CFrame.new(dados.Posicao.X, dados.Posicao.Y + Config.BLOCK_SIZE, dados.Posicao.Z)
-                                        
-                                        local payload = {
-                                            uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                                            cframe = targetCFrame,
-                                            blockType = tool.Name,
-                                            upperBlock = false
-                                        }
-                                        pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                                        task.wait(0.1)
-                                    end
+                                    local targetCFrame = CFrame.new(dados.Posicao.X, dados.Posicao.Y + Config.BLOCK_SIZE, dados.Posicao.Z)
+                                    
+                                    local payload = {
+                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
+                                        cframe = targetCFrame,
+                                        blockType = blockTypeReal, -- Enviando o nome limpo pro servidor!
+                                        upperBlock = false
+                                    }
+                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                    task.wait(0.15) -- Mais um pouquinho de delay seguro para o Place
                                 end
                             end
                         end
