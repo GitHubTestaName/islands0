@@ -1,6 +1,9 @@
 -- loader.lua
 -- Ponto de entrada para carregar a automação modularizada
 
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
 -- Configuração do repositório
 local GITHUB_USER = "GitHubTestaName"
 local GITHUB_REPO = "Islands"
@@ -26,40 +29,86 @@ _G.IslandsBot = {
     Modules = {}
 }
 
+-- ================= TELA DE CARREGAMENTO =================
+if CoreGui:FindFirstChild("IslandsLoadingUI") then
+    CoreGui.IslandsLoadingUI:Destroy()
+end
+
+local LoadGui = Instance.new("ScreenGui", CoreGui)
+LoadGui.Name = "IslandsLoadingUI"
+
+local LoadFrame = Instance.new("Frame", LoadGui)
+LoadFrame.Size = UDim2.new(0, 300, 0, 100)
+LoadFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
+LoadFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LoadFrame.BorderSizePixel = 0
+Instance.new("UICorner", LoadFrame).CornerRadius = UDim.new(0, 8)
+
+local LoadTitle = Instance.new("TextLabel", LoadFrame)
+LoadTitle.Size = UDim2.new(1, 0, 0, 30)
+LoadTitle.Position = UDim2.new(0, 0, 0, 10)
+LoadTitle.BackgroundTransparency = 1
+LoadTitle.Text = "Iniciando Islands PRO..."
+LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadTitle.Font = Enum.Font.SourceSansBold
+LoadTitle.TextSize = 18
+
+local LoadStatus = Instance.new("TextLabel", LoadFrame)
+LoadStatus.Size = UDim2.new(1, 0, 0, 20)
+LoadStatus.Position = UDim2.new(0, 0, 0, 40)
+LoadStatus.BackgroundTransparency = 1
+LoadStatus.Text = "0%"
+LoadStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+LoadStatus.Font = Enum.Font.SourceSans
+LoadStatus.TextSize = 14
+
+local BarBG = Instance.new("Frame", LoadFrame)
+BarBG.Size = UDim2.new(0.8, 0, 0, 10)
+BarBG.Position = UDim2.new(0.1, 0, 0, 70)
+BarBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1, 0)
+
+local BarFill = Instance.new("Frame", BarBG)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
+-- ================= FUNÇÃO DE CARREGAMENTO =================
 local function carregarModulo(caminho)
     local url = BASE_URL .. caminho
     local success, scriptContent = pcall(game.HttpGet, game, url)
-    if not success or not scriptContent then
-        warn("[Loader] Erro ao baixar modulo: " .. caminho)
-        return nil
-    end
+    if not success or not scriptContent then return nil end
     
     local executable, compileError = loadstring(scriptContent)
-    if not executable then
-        warn("[Loader] Erro de compilacao no modulo: " .. caminho .. " | " .. tostring(compileError))
-        return nil
-    end
+    if not executable then return nil end
     
     local loadSuccess, moduleResult = pcall(executable)
-    if not loadSuccess then
-        warn("[Loader] Erro de execucao no modulo: " .. caminho .. " | " .. tostring(moduleResult))
-        return nil
-    end
-    
+    if not loadSuccess then return nil end
     return moduleResult
 end
 
--- Carregamento sequencial dos módulos
--- Carregamento sequencial dos módulos
+local modulosParaCarregar = {
+    {nome = "Manager", caminho = "src/core/Manager.lua"},
+    {nome = "Scanner", caminho = "src/core/Scanner.lua"},
+    {nome = "Miner", caminho = "src/actions/Miner.lua"},
+    {nome = "Builder", caminho = "src/actions/Builder.lua"},
+    {nome = "Farmer", caminho = "src/actions/Farmer.lua"},
+    {nome = "UI", caminho = "src/ui/Window.lua"} -- UI por ultimo para não sobrepor a tela de loading
+}
+
 task.spawn(function()
-    print("[Loader] Carregando modulos do backend...")
-    _G.IslandsBot.Modules.Manager = carregarModulo("src/core/Manager.lua")
-    _G.IslandsBot.Modules.Scanner = carregarModulo("src/core/Scanner.lua")
-    _G.IslandsBot.Modules.Miner = carregarModulo("src/actions/Miner.lua")
-    _G.IslandsBot.Modules.Builder = carregarModulo("src/actions/Builder.lua")
-    _G.IslandsBot.Modules.Farmer = carregarModulo("src/actions/Farmer.lua") -- NOVO AQUI
+    local total = #modulosParaCarregar
+    for i, mod in ipairs(modulosParaCarregar) do
+        LoadStatus.Text = string.format("Carregando módulo %s... (%d%%)", mod.nome, math.floor((i/total)*100))
+        
+        -- Animação suave da barra
+        TweenService:Create(BarFill, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Size = UDim2.new(i/total, 0, 1, 0)}):Play()
+        
+        _G.IslandsBot.Modules[mod.nome] = carregarModulo(mod.caminho)
+        task.wait(0.3) -- Pequeno delay para a animação do carregamento ficar bonita
+    end
     
-    print("[Loader] Inicializando interface do usuario...")
-    _G.IslandsBot.Modules.UI = carregarModulo("src/ui/Window.lua")
-    print("[Loader] Inicializacao concluida.")
+    LoadStatus.Text = "Concluído!"
+    task.wait(0.5)
+    LoadGui:Destroy()
 end)
