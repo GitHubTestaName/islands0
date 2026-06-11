@@ -8,10 +8,10 @@ local LocalPlayer = Players.LocalPlayer
 
 function Builder:ColocarAreaMarcada()
     local Manager = Bot.Modules.Manager
-    local Scanner = Bot.Modules.Scanner
+    local Scanner = State.ScannerGeral -- Usa exclusivamente o Seletor Azul
 
     if State.Minerando or State.Construindo then return end
-    if not State.AncoraPart then 
+    if not Scanner or not Scanner.AncoraPart then 
         if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor primeiro!") end
         return 
     end
@@ -30,7 +30,6 @@ function Builder:ColocarAreaMarcada()
         return
     end
 
-    -- Equipa a ferramenta automaticamente
     if char and tool.Parent == LocalPlayer.Backpack then
         char.Humanoid:EquipTool(tool)
         task.wait(0.2)
@@ -39,8 +38,8 @@ function Builder:ColocarAreaMarcada()
     State.Construindo = true
     if Manager then Manager:AtualizarStatus("Construindo com: " .. tool.Name) end
 
-    local minCoord = State.AncoraPart.Position - (State.AncoraPart.Size / 2)
-    local maxCoord = State.AncoraPart.Position + (State.AncoraPart.Size / 2)
+    local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
+    local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
 
     task.spawn(function()
         for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
@@ -53,8 +52,7 @@ function Builder:ColocarAreaMarcada()
                     local ocupado = false
                     for _, v in pairs(overlap) do
                         if v:IsDescendantOf(workspace.Islands) and v.Name ~= "SelectionAnchor_Script" then
-                            ocupado = true
-                            break
+                            ocupado = true; break
                         end
                     end
                     
@@ -77,8 +75,5 @@ function Builder:ColocarAreaMarcada()
     end)
 end
 
-function Builder:Cancelar()
-    State.Construindo = false
-end
-
+function Builder:Cancelar() State.Construindo = false end
 return Builder

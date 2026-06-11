@@ -5,27 +5,24 @@ local State = Bot.State
 
 function Miner:ExecutarLoop()
     local Manager = Bot.Modules.Manager
-    local Scanner = Bot.Modules.Scanner
+    local Scanner = State.ScannerGeral -- Usa exclusivamente o Seletor Azul
 
     while State.Minerando do
         if Scanner then Scanner:EscanearArea() end
         
-        if #State.ListaBlocos == 0 then
+        if not Scanner or #Scanner.ListaBlocos == 0 then
             if Manager then Manager:AtualizarStatus("Aguardando blocos...") end
             task.wait(1)
             continue
         end
 
-        for i, dados in ipairs(State.ListaBlocos) do
+        for i, dados in ipairs(Scanner.ListaBlocos) do
             if not State.Minerando then break end
 
             local bloco = dados.Instancia
             if not bloco or not bloco:IsDescendantOf(workspace) then continue end
 
-            -- Encontra a vida raiz (na árvore ou no minério)
             local healthObj = bloco:FindFirstChild("Health")
-            
-            -- EXATAMENTE O QUE VOCÊ PEDIU: Enviamos o Pai (O Modelo Principal) inteiro!
             local partTarget = bloco 
             local tentativas = 0
             
@@ -40,7 +37,7 @@ function Miner:ExecutarLoop()
                 
                 tentativas = tentativas + 1
                 if Manager then
-                    Manager:AtualizarStatus(string.format("[%d/%d] %s | HP: %s | Hit: %d", i, #State.ListaBlocos, dados.Nome, tostring(hpAtual), tentativas))
+                    Manager:AtualizarStatus(string.format("[%d/%d] %s | HP: %s | Hit: %d", i, #Scanner.ListaBlocos, dados.Nome, tostring(hpAtual), tentativas))
                 end
 
                 if tentativas > 200 then 
@@ -62,9 +59,7 @@ function Miner:ExecutarLoop()
                     pos = Vector3.new(0, 1, 0)
                 }
 
-                pcall(function() 
-                    Manager.HitRemote:InvokeServer(payload) 
-                end)
+                pcall(function() Manager.HitRemote:InvokeServer(payload) end)
                 task.wait(0.02)
             end
             
@@ -76,8 +71,8 @@ end
 
 function Miner:Alternar(valor)
     local Manager = Bot.Modules.Manager
-    if not State.AncoraPart then 
-        if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor primeiro!") end
+    if not State.ScannerGeral or not State.ScannerGeral.AncoraPart then 
+        if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor geral primeiro!") end
         return false
     end
     

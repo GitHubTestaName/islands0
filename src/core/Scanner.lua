@@ -3,23 +3,38 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 
+-- Transformando em Classe (OOP)
 local Scanner = {}
-local Bot = _G.IslandsBot
-local State = Bot.State
-local Config = Bot.Config
+Scanner.__index = Scanner
 
+local Bot = _G.IslandsBot
+local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
+-- CONSTRUTOR: Permite criar múltiplos Scanners independentes
+function Scanner.new(corCubo)
+    local self = setmetatable({}, Scanner)
+    
+    self.Cor = corCubo or Color3.fromRGB(0, 150, 255)
+    self.AncoraPart = nil
+    self.Handles = nil
+    self.CaixaVisual = nil
+    self.MarcadoresVisuais = {}
+    self.ListaBlocos = {}
+    
+    return self
+end
+
 function Scanner:LimparEnumeracao()
-    for _, obj in pairs(State.MarcadoresVisuais) do if obj then obj:Destroy() end end
-    State.MarcadoresVisuais = {}
-    State.ListaBlocos = {}
+    for _, obj in pairs(self.MarcadoresVisuais) do if obj then obj:Destroy() end end
+    self.MarcadoresVisuais = {}
+    self.ListaBlocos = {}
 end
 
 function Scanner:LimparAncora()
-    if State.AncoraPart then State.AncoraPart:Destroy() end
-    if State.Handles then State.Handles:Destroy() end
-    State.AncoraPart = nil
+    if self.AncoraPart then self.AncoraPart:Destroy() end
+    if self.Handles then self.Handles:Destroy() end
+    self.AncoraPart = nil
     self:LimparEnumeracao()
 end
 
@@ -47,7 +62,7 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     txt.Font = Enum.Font.SourceSansBold
     txt.Text = tostring(numero)
     
-    table.insert(State.MarcadoresVisuais, part)
+    table.insert(self.MarcadoresVisuais, part)
     return part
 end
 
@@ -74,7 +89,7 @@ function Scanner:AlinharParaGrid(posicao)
 end
 
 function Scanner:MoverSeletor(direcao)
-    if not State.AncoraPart then return end
+    if not self.AncoraPart then return end
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
@@ -98,13 +113,13 @@ function Scanner:MoverSeletor(direcao)
     elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
     
-    State.AncoraPart.Position = State.AncoraPart.Position + d
-    if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
+    self.AncoraPart.Position = self.AncoraPart.Position + d
+    if self.CaixaVisual then self.CaixaVisual.Adornee = self.AncoraPart end
     self:EscanearArea()
 end
 
 function Scanner:EscanearArea()
-    if not State.AncoraPart then return end
+    if not self.AncoraPart then return end
     self:LimparEnumeracao()
     
     local minhaIlha = nil
@@ -117,9 +132,8 @@ function Scanner:EscanearArea()
     overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
     overlapParams.FilterType = Enum.RaycastFilterType.Include
     
-    -- CORREÇÃO DOS 9 BLOCOS: Diminui milímetros para não "encostar" nas paredes dos blocos ao lado
-    local querySize = State.AncoraPart.Size - Vector3.new(0.2, 0.2, 0.2)
-    local partsInBox = workspace:GetPartBoundsInBox(State.AncoraPart.CFrame, querySize, overlapParams)
+    local querySize = self.AncoraPart.Size - Vector3.new(0.2, 0.2, 0.2)
+    local partsInBox = workspace:GetPartBoundsInBox(self.AncoraPart.CFrame, querySize, overlapParams)
     
     local blocosUnicos = {}
     local blocosEncontrados = {}
@@ -127,8 +141,6 @@ function Scanner:EscanearArea()
 
     for _, part in ipairs(partsInBox) do
         local lowerName = part.Name:lower()
-        
-        -- EXCLUI O TRONCO E O TOPO DO ESCANEAMENTO
         if lowerName == "trunk" or lowerName == "top" then continue end
 
         local rootBlock = Manager:ObterBlocoRaiz(part)
@@ -148,8 +160,61 @@ function Scanner:EscanearArea()
     for i, dadosBloco in ipairs(blocosEncontrados) do
         local visualPart = self:CriarNumeroVisual(dadosBloco.Posicao, i)
         dadosBloco.Marcador = visualPart 
-        table.insert(State.ListaBlocos, dadosBloco)
+        table.insert(self.ListaBlocos, dadosBloco)
     end
+end
+
+-- ================= SISTEMA DE CRIAÇÃO BASE =================
+function Scanner:MontarCuboVisuais(posExata, tamanho)
+    self:LimparAncora()
+    
+    self.AncoraPart = Instance.new("Part")
+    self.AncoraPart.Size = tamanho or Vector3.new(Config.BLOCK_SIZE, Config.BLOCK_SIZE, Config.BLOCK_SIZE)
+    self.AncoraPart.Position = posExata
+    self.AncoraPart.Anchored = true
+    self.AncoraPart.CanCollide = false
+    self.AncoraPart.CanQuery = false 
+    self.AncoraPart.CanTouch = false
+    self.AncoraPart.Transparency = 0.7
+    self.AncoraPart.Color = self.Cor
+    self.AncoraPart.Parent = Workspace
+
+    self.CaixaVisual = Instance.new("SelectionBox")
+    self.CaixaVisual.Color3 = self.Cor
+    self.CaixaVisual.LineThickness = 0.05
+    self.CaixaVisual.Adornee = self.AncoraPart
+    self.CaixaVisual.Parent = self.AncoraPart
+
+    self.Handles = Instance.new("Handles")
+    self.Handles.Color3 = Color3.fromRGB(255, 200, 50)
+    self.Handles.Style = Enum.HandlesStyle.Resize
+    self.Handles.Adornee = self.AncoraPart
+    self.Handles.Parent = CoreGui
+
+    local sizeInicial, cframeInicial
+    self.Handles.MouseButton1Down:Connect(function()
+        sizeInicial = self.AncoraPart.Size
+        cframeInicial = self.AncoraPart.CFrame
+    end)
+
+    self.Handles.MouseDrag:Connect(function(face, distancia)
+        local deltaSnap = math.floor(distancia / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE
+        if face == Enum.NormalId.Front or face == Enum.NormalId.Back then
+            self.AncoraPart.Size = sizeInicial + Vector3.new(0, 0, deltaSnap)
+            self.AncoraPart.CFrame = cframeInicial * CFrame.new(0, 0, deltaSnap / 2 * (face == Enum.NormalId.Front and -1 or 1))
+        elseif face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
+            self.AncoraPart.Size = sizeInicial + Vector3.new(0, deltaSnap, 0)
+            self.AncoraPart.CFrame = cframeInicial * CFrame.new(0, deltaSnap / 2 * (face == Enum.NormalId.Top and 1 or -1), 0)
+        elseif face == Enum.NormalId.Right or face == Enum.NormalId.Left then
+            self.AncoraPart.Size = sizeInicial + Vector3.new(deltaSnap, 0, 0)
+            self.AncoraPart.CFrame = cframeInicial * CFrame.new(deltaSnap / 2 * (face == Enum.NormalId.Right and 1 or -1), 0, 0)
+        end
+    end)
+
+    self.Handles.MouseButton1Up:Connect(function() 
+        self:EscanearArea() 
+    end)
+    self:EscanearArea()
 end
 
 function Scanner:CriarSeletorFrontal()
@@ -177,7 +242,6 @@ function Scanner:CriarSeletorFrontal()
     if ray and ray.Instance and Manager then
         local inst = ray.Instance
         local lowerName = inst.Name:lower()
-        -- Se o raycast bater no tronco, finge que não bateu para não quebrar a grid
         if lowerName ~= "trunk" and lowerName ~= "top" then
             local rootBlock = Manager:ObterBlocoRaiz(inst)
             if rootBlock then
@@ -188,56 +252,19 @@ function Scanner:CriarSeletorFrontal()
     end
 
     posExata = self:AlinharParaGrid(posExata)
-
-    self:LimparAncora()
-    
-    State.AncoraPart = Instance.new("Part")
-    State.AncoraPart.Size = Vector3.new(Config.BLOCK_SIZE, Config.BLOCK_SIZE, Config.BLOCK_SIZE)
-    State.AncoraPart.Position = posExata
-    State.AncoraPart.Anchored = true
-    State.AncoraPart.CanCollide = false
-    State.AncoraPart.CanQuery = false 
-    State.AncoraPart.CanTouch = false
-    State.AncoraPart.Transparency = 0.7
-    State.AncoraPart.Color = Color3.fromRGB(0, 150, 255)
-    State.AncoraPart.Parent = Workspace
-
-    State.CaixaVisual = Instance.new("SelectionBox")
-    State.CaixaVisual.Color3 = Color3.fromRGB(0, 255, 255)
-    State.CaixaVisual.LineThickness = 0.05
-    State.CaixaVisual.Adornee = State.AncoraPart
-    State.CaixaVisual.Parent = State.AncoraPart
-
-    State.Handles = Instance.new("Handles")
-    State.Handles.Color3 = Color3.fromRGB(255, 200, 50)
-    State.Handles.Style = Enum.HandlesStyle.Resize
-    State.Handles.Adornee = State.AncoraPart
-    State.Handles.Parent = CoreGui
-
-    local sizeInicial, cframeInicial
-    State.Handles.MouseButton1Down:Connect(function()
-        sizeInicial = State.AncoraPart.Size
-        cframeInicial = State.AncoraPart.CFrame
-    end)
-
-    State.Handles.MouseDrag:Connect(function(face, distancia)
-        local deltaSnap = math.floor(distancia / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE
-        if face == Enum.NormalId.Front or face == Enum.NormalId.Back then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(0, 0, deltaSnap)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(0, 0, deltaSnap / 2 * (face == Enum.NormalId.Front and -1 or 1))
-        elseif face == Enum.NormalId.Top or face == Enum.NormalId.Bottom then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(0, deltaSnap, 0)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(0, deltaSnap / 2 * (face == Enum.NormalId.Top and 1 or -1), 0)
-        elseif face == Enum.NormalId.Right or face == Enum.NormalId.Left then
-            State.AncoraPart.Size = sizeInicial + Vector3.new(deltaSnap, 0, 0)
-            State.AncoraPart.CFrame = cframeInicial * CFrame.new(deltaSnap / 2 * (face == Enum.NormalId.Right and 1 or -1), 0, 0)
-        end
-    end)
-
-    State.Handles.MouseButton1Up:Connect(function() 
-        self:EscanearArea() 
-    end)
-    self:EscanearArea()
+    self:MontarCuboVisuais(posExata)
 end
+
+-- CARREGA O CUBO NO LUGAR EXATO SALVO PELO PLOT MANAGER
+function Scanner:CarregarPlot(posicao, tamanho)
+    local posAlinhada = self:AlinharParaGrid(posicao)
+    self:MontarCuboVisuais(posAlinhada, tamanho)
+end
+
+-- =========================================================
+-- INICIALIZANDO AS DUAS CAIXAS INDEPENDENTES
+-- =========================================================
+Bot.State.ScannerGeral = Scanner.new(Color3.fromRGB(0, 150, 255))   -- Azul (Para Minerar/Construir)
+Bot.State.ScannerFazenda = Scanner.new(Color3.fromRGB(50, 255, 50)) -- Verde (Para Fazenda)
 
 return Scanner
