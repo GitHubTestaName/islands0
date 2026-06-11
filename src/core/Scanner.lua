@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 
--- Transformando em Classe (OOP)
 local Scanner = {}
 Scanner.__index = Scanner
 
@@ -11,7 +10,6 @@ local Bot = _G.IslandsBot
 local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
--- CONSTRUTOR: Permite criar múltiplos Scanners independentes
 function Scanner.new(corCubo)
     local self = setmetatable({}, Scanner)
     
@@ -39,6 +37,9 @@ function Scanner:LimparAncora()
 end
 
 function Scanner:CriarNumeroVisual(posicao, numero)
+    -- NOVO: Bloqueia a criação do número se o usuário pedir!
+    if Bot.State.HideNumbers then return nil end
+    
     local part = Instance.new("Part")
     part.Size = Vector3.new(0.5, 0.5, 0.5)
     part.Position = posicao + Vector3.new(0, 1.5, 0)
@@ -158,13 +159,13 @@ function Scanner:EscanearArea()
     end)
 
     for i, dadosBloco in ipairs(blocosEncontrados) do
+        -- Agora Marcador pode ser nil, e o script vai suportar lindamente!
         local visualPart = self:CriarNumeroVisual(dadosBloco.Posicao, i)
         dadosBloco.Marcador = visualPart 
         table.insert(self.ListaBlocos, dadosBloco)
     end
 end
 
--- ================= SISTEMA DE CRIAÇÃO BASE =================
 function Scanner:MontarCuboVisuais(posExata, tamanho)
     self:LimparAncora()
     
@@ -211,9 +212,7 @@ function Scanner:MontarCuboVisuais(posExata, tamanho)
         end
     end)
 
-    self.Handles.MouseButton1Up:Connect(function() 
-        self:EscanearArea() 
-    end)
+    self.Handles.MouseButton1Up:Connect(function() self:EscanearArea() end)
     self:EscanearArea()
 end
 
@@ -255,16 +254,12 @@ function Scanner:CriarSeletorFrontal()
     self:MontarCuboVisuais(posExata)
 end
 
--- CARREGA O CUBO NO LUGAR EXATO SALVO PELO PLOT MANAGER
 function Scanner:CarregarPlot(posicao, tamanho)
     local posAlinhada = self:AlinharParaGrid(posicao)
     self:MontarCuboVisuais(posAlinhada, tamanho)
 end
 
--- =========================================================
--- INICIALIZANDO AS DUAS CAIXAS INDEPENDENTES
--- =========================================================
-Bot.State.ScannerGeral = Scanner.new(Color3.fromRGB(0, 150, 255))   -- Azul (Para Minerar/Construir)
-Bot.State.ScannerFazenda = Scanner.new(Color3.fromRGB(50, 255, 50)) -- Verde (Para Fazenda)
+Bot.State.ScannerGeral = Scanner.new(Color3.fromRGB(0, 150, 255))
+Bot.State.ScannerFazenda = Scanner.new(Color3.fromRGB(50, 255, 50))
 
 return Scanner

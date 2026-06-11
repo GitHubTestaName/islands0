@@ -15,14 +15,14 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 500, 0, 450) -- Aumentei um pouco a altura inicial
+MainFrame.Size = UDim2.new(0, 500, 0, 450)
 MainFrame.Position = UDim2.new(0.5, -250, 0.5, -225)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- ================= ARRASTAR E REDIMENSIONAR =================
+-- ================= ARRASTAR APENAS PELO TOPBAR =================
 local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -136,6 +136,7 @@ local function CriarAba(nome, id)
     local layout = Instance.new("UIListLayout", pg)
     layout.Padding = UDim.new(0, 8)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.SortOrder = Enum.SortOrder.LayoutOrder -- Ordem Estrita de layout
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
     end)
@@ -162,11 +163,15 @@ BotoesAba["fazenda"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["fazenda"].UIStroke.Transparency = 0
 Paginas["fazenda"].Visible = true
 
--- ================= CONSTRUTORES VISUAIS GERAIS =================
+-- ================= CONSTRUTORES DE LAYOUT (A Mágica da Ordem) =================
+local layoutOrderGlobal = 0
+local function GetOrdem() layoutOrderGlobal = layoutOrderGlobal + 1 return layoutOrderGlobal end
+
 local function CriarSecao(titulo, parent)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(0.95, 0, 0, 20)
     f.BackgroundTransparency = 1
+    f.LayoutOrder = GetOrdem()
     local t = Instance.new("TextLabel", f)
     t.Size = UDim2.new(1, 0, 1, 0)
     t.BackgroundTransparency = 1
@@ -187,15 +192,17 @@ local function CriarBotaoEstilizado(texto, parent, callback)
     btn.Font = Enum.Font.SourceSansSemibold
     btn.TextSize = 14
     btn.BorderSizePixel = 0
+    btn.LayoutOrder = GetOrdem()
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
-local function CriarToggleEstilizado(texto, parent, callback)
+local function CriarToggleEstilizado(texto, parent, stateTable, stateKey, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
+    frame.LayoutOrder = GetOrdem()
     
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.7, 0, 1, 0)
@@ -209,93 +216,122 @@ local function CriarToggleEstilizado(texto, parent, callback)
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(0, 50, 0, 24)
     btn.Position = UDim2.new(1, -50, 0, 4)
-    btn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-    btn.Text = "OFF"
+    local isAtivo = stateTable[stateKey]
+    btn.BackgroundColor3 = isAtivo and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(180, 50, 50)
+    btn.Text = isAtivo and "ON" or "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 12
     btn.BorderSizePixel = 0
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     
-    local estado = false
     btn.MouseButton1Click:Connect(function()
-        estado = not estado
-        btn.Text = estado and "ON" or "OFF"
-        btn.BackgroundColor3 = estado and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(180, 50, 50)
-        callback(estado)
+        stateTable[stateKey] = not stateTable[stateKey]
+        local v = stateTable[stateKey]
+        btn.Text = v and "ON" or "OFF"
+        btn.BackgroundColor3 = v and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(180, 50, 50)
+        if callback then callback(v) end
     end)
 end
 
--- Novo Checkbox Compacto que salva na tabela State.FarmSettings
-local function CriarCheckbox(texto, parent, stateKeyName)
+-- ================= LINHAS HORIZONTAIS COMPACTAS =================
+-- Para organizar os Checkboxes Lado a Lado
+local function CriarLinhaCheckboxes(parent, listaConfigs)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 24)
     frame.BackgroundTransparency = 1
+    frame.LayoutOrder = GetOrdem()
     
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 20, 0, 20)
-    btn.Position = UDim2.new(0, 0, 0, 2)
-    btn.BackgroundColor3 = State.FarmSettings[stateKeyName] and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
-    btn.Text = State.FarmSettings[stateKeyName] and "✓" or ""
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    local layout = Instance.new("UIListLayout", frame)
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.Padding = UDim.new(0, 10)
     
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, -30, 1, 0)
-    label.Position = UDim2.new(0, 30, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = texto
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    
-    btn.MouseButton1Click:Connect(function()
-        State.FarmSettings[stateKeyName] = not State.FarmSettings[stateKeyName]
-        btn.BackgroundColor3 = State.FarmSettings[stateKeyName] and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
-        btn.Text = State.FarmSettings[stateKeyName] and "✓" or ""
-    end)
+    local wScale = (1 / #listaConfigs) - 0.05
+    for _, config in ipairs(listaConfigs) do
+        local container = Instance.new("Frame", frame)
+        container.Size = UDim2.new(wScale, 0, 1, 0)
+        container.BackgroundTransparency = 1
+        
+        local btn = Instance.new("TextButton", container)
+        btn.Size = UDim2.new(0, 20, 0, 20)
+        btn.Position = UDim2.new(0, 0, 0, 2)
+        local isAtivo = config.table[config.key]
+        btn.BackgroundColor3 = isAtivo and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
+        btn.Text = isAtivo and "✓" or ""
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        
+        local label = Instance.new("TextLabel", container)
+        label.Size = UDim2.new(1, -25, 1, 0)
+        label.Position = UDim2.new(0, 25, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = config.texto
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        btn.MouseButton1Click:Connect(function()
+            config.table[config.key] = not config.table[config.key]
+            local v = config.table[config.key]
+            btn.BackgroundColor3 = v and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(40, 40, 40)
+            btn.Text = v and "✓" or ""
+            if config.callback then config.callback(v) end
+        end)
+    end
 end
 
-local function CriarInputDelay(texto, parent, stateKeyName, valDefault)
+-- Para organizar os Delays Lado a Lado
+local function CriarLinhaInputs(parent, listaConfigs)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
+    frame.LayoutOrder = GetOrdem()
     
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = texto
-    label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local layout = Instance.new("UIListLayout", frame)
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.Padding = UDim.new(0, 10)
     
-    local input = Instance.new("TextBox", frame)
-    input.Size = UDim2.new(0.4, 0, 0, 24)
-    input.Position = UDim2.new(0.6, 0, 0, 4)
-    input.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    input.Text = tostring(valDefault)
-    input.TextColor3 = Color3.fromRGB(255, 255, 255)
-    input.Font = Enum.Font.SourceSansBold
-    input.TextSize = 14
-    Instance.new("UICorner", input).CornerRadius = UDim.new(0, 4)
-    
-    input.FocusLost:Connect(function()
-        local val = tonumber(input.Text)
-        if val then
-            State.FarmSettings[stateKeyName] = val
-        else
-            input.Text = tostring(State.FarmSettings[stateKeyName])
-        end
-    end)
+    local wScale = (1 / #listaConfigs) - 0.05
+    for _, config in ipairs(listaConfigs) do
+        local container = Instance.new("Frame", frame)
+        container.Size = UDim2.new(wScale, 0, 1, 0)
+        container.BackgroundTransparency = 1
+        
+        local label = Instance.new("TextLabel", container)
+        label.Size = UDim2.new(0.6, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = config.texto
+        label.TextColor3 = Color3.fromRGB(200, 200, 200)
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 13
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local input = Instance.new("TextBox", container)
+        input.Size = UDim2.new(0.4, 0, 0, 24)
+        input.Position = UDim2.new(0.6, 0, 0, 4)
+        input.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        input.Text = tostring(config.table[config.key])
+        input.TextColor3 = Color3.fromRGB(255, 255, 255)
+        input.Font = Enum.Font.SourceSansBold
+        input.TextSize = 13
+        Instance.new("UICorner", input).CornerRadius = UDim.new(0, 4)
+        
+        input.FocusLost:Connect(function()
+            local val = tonumber(input.Text)
+            if val then config.table[config.key] = val else input.Text = tostring(config.table[config.key]) end
+        end)
+    end
 end
 
-local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
+-- ================= DROPDOWNS COM Z-INDEX FIXO =================
+-- Adicionamos zBase para que um Dropdown não se esconda atrás do outro!
+local function CriarDropdownEstilizado(labelTexto, parent, stateTable, stateKey, isMulti, zBase)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 2
+    frame.LayoutOrder = GetOrdem()
+    frame.ZIndex = zBase
     
     local mainBtn = Instance.new("TextButton", frame)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
@@ -305,7 +341,7 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
     mainBtn.Font = Enum.Font.SourceSansSemibold
     mainBtn.TextSize = 14
     mainBtn.BorderSizePixel = 0
-    mainBtn.ZIndex = 3
+    mainBtn.ZIndex = zBase + 1
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
     
     local scroll = Instance.new("ScrollingFrame", frame)
@@ -314,13 +350,13 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
     scroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     scroll.BorderSizePixel = 0
     scroll.Visible = false
-    scroll.ZIndex = 10
+    scroll.ZIndex = zBase + 5
     scroll.ScrollBarThickness = 4
     Instance.new("UIListLayout", scroll)
     
     mainBtn.MouseButton1Click:Connect(function() scroll.Visible = not scroll.Visible end)
     
-    if isMulti then Bot.State[stateKey] = {["All"] = true} end
+    if isMulti and not stateTable[stateKey] then stateTable[stateKey] = {["All"] = true} end
     
     local dropdownObj = {}
     function dropdownObj:Refresh(listaItems)
@@ -334,15 +370,15 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
         local botoesCriados = {}
         local function atualizarMainText()
             if isMulti then
-                if Bot.State[stateKey]["All"] then
+                if stateTable[stateKey]["All"] then
                     mainBtn.Text = labelTexto .. ": All (Qualquer)"
                 else
                     local count = 0
-                    for k, v in pairs(Bot.State[stateKey]) do if v then count = count + 1 end end
+                    for k, v in pairs(stateTable[stateKey]) do if v then count = count + 1 end end
                     mainBtn.Text = labelTexto .. ": " .. count .. " selecionada(s)"
                 end
             else
-                mainBtn.Text = labelTexto .. ": " .. tostring(Bot.State[stateKey] or "Nenhum")
+                mainBtn.Text = labelTexto .. ": " .. tostring(stateTable[stateKey] or "Nenhum")
             end
         end
         
@@ -355,32 +391,32 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
             itemBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
             itemBtn.Font = Enum.Font.SourceSans
             itemBtn.TextSize = 13
-            itemBtn.ZIndex = 11
+            itemBtn.ZIndex = zBase + 6
             table.insert(botoesCriados, {btn = itemBtn, nome = itemNome})
             hTotal = hTotal + 25
             
             local function applyVisual()
                 if isMulti then
-                    itemBtn.BackgroundColor3 = Bot.State[stateKey][itemNome] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(35, 35, 35)
-                    itemBtn.TextColor3 = Bot.State[stateKey][itemNome] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+                    itemBtn.BackgroundColor3 = stateTable[stateKey][itemNome] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(35, 35, 35)
+                    itemBtn.TextColor3 = stateTable[stateKey][itemNome] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
                 end
             end
             applyVisual()
             
             itemBtn.MouseButton1Click:Connect(function()
                 if isMulti then
-                    if itemNome == "All" then Bot.State[stateKey] = {["All"] = true}
+                    if itemNome == "All" then stateTable[stateKey] = {["All"] = true}
                     else
-                        Bot.State[stateKey]["All"] = nil
-                        Bot.State[stateKey][itemNome] = not Bot.State[stateKey][itemNome]
+                        stateTable[stateKey]["All"] = nil
+                        stateTable[stateKey][itemNome] = not stateTable[stateKey][itemNome]
                     end
                     for _, obj in ipairs(botoesCriados) do
-                        obj.btn.BackgroundColor3 = Bot.State[stateKey][obj.nome] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(35, 35, 35)
-                        obj.btn.TextColor3 = Bot.State[stateKey][obj.nome] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+                        obj.btn.BackgroundColor3 = stateTable[stateKey][obj.nome] and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(35, 35, 35)
+                        obj.btn.TextColor3 = stateTable[stateKey][obj.nome] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
                     end
                     atualizarMainText()
                 else
-                    Bot.State[stateKey] = itemNome
+                    stateTable[stateKey] = itemNome
                     atualizarMainText()
                     scroll.Visible = false
                 end
@@ -392,14 +428,22 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey, isMulti)
     return dropdownObj
 end
 
+
 -- ================= ABA 1: GERAL (AZUL) =================
 local p1 = Paginas["seletor"]
 
 CriarSecao("=== MINER & BUILDER ===", p1)
-CriarToggleEstilizado("⛏️ Ativar Loop de Mineração", p1, function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
-local DropdownBlocos = CriarDropdownEstilizado("Material (Build)", p1, "BlocoSelecionado", false)
+CriarToggleEstilizado("⛏️ Ativar Loop de Mineração", p1, State, "Minerando", function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
+local DropdownBlocos = CriarDropdownEstilizado("Material (Build)", p1, State, "BlocoSelecionado", false, 100)
 CriarBotaoEstilizado("🔄 Recarregar Inventário", p1, function() if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end end)
 CriarBotaoEstilizado("🔨 Preencher Área Selecionada", p1, function() if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end end)
+
+CriarSecao("=== CONFIG. DO SELETOR ===", p1)
+CriarLinhaCheckboxes(p1, {
+    { texto = "Ocultar Números", table = State, key = "HideNumbers", callback = function()
+        if State.ScannerGeral then State.ScannerGeral:EscanearArea() end
+    end }
+})
 
 CriarSecao("=== SELETOR AZUL ===", p1)
 CriarBotaoEstilizado("🟦 Spawn Block (Frente)", p1, function() if State.ScannerGeral then State.ScannerGeral:CriarSeletorFrontal() end end)
@@ -407,6 +451,8 @@ CriarBotaoEstilizado("🟦 Spawn Block (Frente)", p1, function() if State.Scanne
 local PadContainer = Instance.new("Frame", p1)
 PadContainer.Size = UDim2.new(0.95, 0, 0, 90)
 PadContainer.BackgroundTransparency = 1
+PadContainer.LayoutOrder = GetOrdem()
+
 local CrossContainer = Instance.new("Frame", PadContainer)
 CrossContainer.Size = UDim2.new(0, 100, 0, 80)
 CrossContainer.Position = UDim2.new(0, 10, 0, 5)
@@ -457,18 +503,24 @@ end
 CriarBtnVertical("🔼 Subir (+3)", 15, "Subir", VerticalContainer, "ScannerGeral")
 CriarBtnVertical("🔽 Descer (-3)", 45, "Descer", VerticalContainer, "ScannerGeral")
 
+
 -- ================= ABA 3: FAZENDA (A OBRA DE ARTE) =================
 local p3 = Paginas["fazenda"]
 
 CriarSecao("=== MAIN FARM ===", p3)
-CriarToggleEstilizado("🟢 Start Farm", p3, function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
-CriarCheckbox("Plow Grass", p3, "PlowGrass")
-CriarCheckbox("Place Grass", p3, "PlaceGrass")
-CriarCheckbox("Auto Replace Seed", p3, "AutoReplace")
+CriarToggleEstilizado("🟢 Start Farm", p3, State, "AutoFarmingCrops", function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
+
+CriarLinhaCheckboxes(p3, {
+    { texto = "Plow Grass", table = State.FarmSettings, key = "PlowGrass" },
+    { texto = "Place Grass", table = State.FarmSettings, key = "PlaceGrass" },
+    { texto = "Auto Replace", table = State.FarmSettings, key = "AutoReplace" }
+})
 
 CriarSecao("=== SEED SELECT ===", p3)
-local DropdownSementes = CriarDropdownEstilizado("Sementes", p3, "SementeSelecionada", true)
-local PriorizeDropdown = CriarDropdownEstilizado("Priorize Plant", p3, "PrioritizePlant", false)
+-- Passando "State" e Z-Index = 150 para que a lista de Sementes caia sobre a lista de Priorize!
+local DropdownSementes = CriarDropdownEstilizado("Sementes", p3, State, "SementeSelecionada", true, 150)
+-- Passando "State.FarmSettings" com a chave correta e Z-Index menor
+local PriorizeDropdown = CriarDropdownEstilizado("Priorize Plant", p3, State.FarmSettings, "PrioritizePlant", false, 100)
 CriarBotaoEstilizado("🔄 Refresh Seeds", p3, function()
     if Bot.Modules.Manager then 
         local inv = Bot.Modules.Manager:GetInventoryTools("Seed")
@@ -478,17 +530,28 @@ CriarBotaoEstilizado("🔄 Refresh Seeds", p3, function()
 end)
 
 CriarSecao("=== CONFIGURE DELAY ===", p3)
-CriarInputDelay("Harvest Delay (s)", p3, "HarvestDelay", 0.1)
-CriarInputDelay("Plant Delay (s)", p3, "PlantDelay", 0.15)
+CriarLinhaInputs(p3, {
+    { texto = "Harvest (s)", table = State.FarmSettings, key = "HarvestDelay" },
+    { texto = "Plant (s)", table = State.FarmSettings, key = "PlantDelay" }
+})
+
+CriarSecao("=== CONFIGURAÇÃO DO SELETOR ===", p3)
+CriarLinhaCheckboxes(p3, {
+    { texto = "Ocultar Números", table = State, key = "HideNumbers", callback = function()
+        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
+    end }
+})
 
 CriarSecao("=== SELECTOR & SAVES ===", p3)
-CriarBotaoEstilizado("🟩 Spawn Block Verde (Frente)", p3, function()
+CriarBotaoEstilizado("🟩 Spawn Block Verde", p3, function()
     if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end
 end)
 
 local PadFazenda = Instance.new("Frame", p3)
 PadFazenda.Size = UDim2.new(0.95, 0, 0, 90)
 PadFazenda.BackgroundTransparency = 1
+PadFazenda.LayoutOrder = GetOrdem()
+
 local CrossFazenda = Instance.new("Frame", PadFazenda)
 CrossFazenda.Size = UDim2.new(0, 100, 0, 80)
 CrossFazenda.Position = UDim2.new(0, 10, 0, 5)
@@ -507,10 +570,12 @@ VertFazenda.BackgroundTransparency = 1
 CriarBtnVertical("🔼 Subir (+3)", 15, "Subir", VertFazenda, "ScannerFazenda")
 CriarBtnVertical("🔽 Descer (-3)", 45, "Descer", VertFazenda, "ScannerFazenda")
 
--- SISTEMA DE SAVES DE PLOTS
+-- LINHA DE SALVAMENTO DE PLOTS (Save)
 local rowSave = Instance.new("Frame", p3)
 rowSave.Size = UDim2.new(0.95, 0, 0, 32)
 rowSave.BackgroundTransparency = 1
+rowSave.LayoutOrder = GetOrdem()
+
 local inputPlot = Instance.new("TextBox", rowSave)
 inputPlot.Size = UDim2.new(0.65, -5, 1, 0)
 inputPlot.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -521,8 +586,6 @@ inputPlot.Font = Enum.Font.SourceSans
 inputPlot.TextSize = 14
 Instance.new("UICorner", inputPlot).CornerRadius = UDim.new(0, 4)
 
-local plotDropdown = nil -- Forward declaration
-
 local btnSave = Instance.new("TextButton", rowSave)
 btnSave.Size = UDim2.new(0.35, 0, 1, 0)
 btnSave.Position = UDim2.new(0.65, 5, 0, 0)
@@ -532,6 +595,9 @@ btnSave.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnSave.Font = Enum.Font.SourceSansBold
 btnSave.TextSize = 14
 Instance.new("UICorner", btnSave).CornerRadius = UDim.new(0, 4)
+
+-- Forward Declaration
+local plotDropdown = nil 
 
 local function AtualizarListaSaves()
     if Bot.Modules.PlotManager and plotDropdown then
@@ -552,11 +618,15 @@ btnSave.MouseButton1Click:Connect(function()
     end
 end)
 
-plotDropdown = CriarDropdownEstilizado("Select Save", p3, "CurrentSaveName", false)
+-- SOLUÇÃO DO BUG: Passamos a tabela CORRETA (State.FarmSettings) e a Key "CurrentSaveName"
+plotDropdown = CriarDropdownEstilizado("Select Save", p3, State.FarmSettings, "CurrentSaveName", false, 50)
 
+-- LINHA DE AÇÕES (Load, Rewrite, Delete)
 local rowActions = Instance.new("Frame", p3)
 rowActions.Size = UDim2.new(0.95, 0, 0, 32)
 rowActions.BackgroundTransparency = 1
+rowActions.LayoutOrder = GetOrdem()
+
 local layoutActions = Instance.new("UIListLayout", rowActions)
 layoutActions.FillDirection = Enum.FillDirection.Horizontal
 layoutActions.Padding = UDim.new(0, 5)
@@ -573,11 +643,14 @@ local function CriarAcaoPlot(texto, cor, callback)
     b.MouseButton1Click:Connect(callback)
 end
 
+-- AÇÕES CORRIGIDAS PUXANDO DO LOCAL CERTO
 CriarAcaoPlot("Load", Color3.fromRGB(0, 150, 100), function()
     local sn = State.FarmSettings.CurrentSaveName
     if sn and sn ~= "Nenhum" then
         local p = Bot.Modules.PlotManager:ObterTodos()[sn]
-        if p then State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) end
+        if p and State.ScannerFazenda then 
+            State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) 
+        end
     end
 end)
 
@@ -597,9 +670,10 @@ CriarAcaoPlot("Delete", Color3.fromRGB(200, 50, 50), function()
     end
 end)
 
-CriarCheckbox("Auto use Selected Save", p3, "AutoUseSelectedSave")
+CriarLinhaCheckboxes(p3, {
+    { texto = "Auto use Selected Save", table = State.FarmSettings, key = "AutoUseSelectedSave" }
+})
 
--- Inicializa a lista de saves após a interface carregar
 task.spawn(function()
     task.wait(1)
     AtualizarListaSaves()
@@ -626,6 +700,22 @@ CriarBotaoEstilizado("❌ Finalizar Bot e Limpar UI", p4, function()
     if State.ScannerGeral then State.ScannerGeral:LimparAncora() end
     if State.ScannerFazenda then State.ScannerFazenda:LimparAncora() end
     ScreenGui:Destroy()
+end)
+
+local isListeningForKey = false
+local currentHideKey = Enum.KeyCode.V
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed and not isListeningForKey then return end
+    if isListeningForKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        currentHideKey = input.KeyCode
+        isListeningForKey = false
+        if State.UpdateKeybindButton then State.UpdateKeybindButton() end
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentHideKey then
+        MainFrame.Visible = not MainFrame.Visible
+    end
 end)
 
 return UI

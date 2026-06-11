@@ -10,15 +10,15 @@ local GITHUB_REPO = "Islands"
 local BRANCH = "main"
 local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, GITHUB_REPO, BRANCH)
 
--- Inicialização do ambiente global (COM OS NOVOS ESTADOS DA FAZENDA)
+-- Inicialização do ambiente global
 _G.IslandsBot = {
     Config = { BLOCK_SIZE = 3, BaseUrl = BASE_URL },
     State = {
-        -- O Scanner atual deixará de ser Global e passará a usar estes aqui no Passo 2:
         ScannerGeral = nil,
         ScannerFazenda = nil,
         
-        -- Memória Master da Fazenda (Exatamente o que você desenhou)
+        HideNumbers = false, -- NOVO ESTADO: Ocultar números dos blocos
+        
         FarmSettings = {
             PlowGrass = false,
             PlaceGrass = false,
@@ -27,10 +27,9 @@ _G.IslandsBot = {
             HarvestDelay = 0.1,
             PlantDelay = 0.15,
             AutoUseSelectedSave = false,
-            CurrentSaveName = nil
+            CurrentSaveName = "Nenhum"
         },
         
-        -- Compatibilidade antiga até migrarmos 100%
         AncoraPart = nil, Handles = nil, CaixaVisual = nil,
         MarcadoresVisuais = {}, ListaBlocos = {},
         
@@ -97,7 +96,7 @@ end
 
 local modulosParaCarregar = {
     {nome = "Manager", caminho = "src/core/Manager.lua"},
-    {nome = "PlotManager", caminho = "src/core/PlotManager.lua"}, -- NOVO ARQUIVO!
+    {nome = "PlotManager", caminho = "src/core/PlotManager.lua"},
     {nome = "Scanner", caminho = "src/core/Scanner.lua"},
     {nome = "Miner", caminho = "src/actions/Miner.lua"},
     {nome = "Builder", caminho = "src/actions/Builder.lua"},
