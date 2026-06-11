@@ -29,7 +29,6 @@ function Manager:GetInventoryTools(filterType)
     
     local function analisarItem(obj)
         if obj:IsA("Tool") and not guardadas[obj.Name] then
-            -- O Filtro Absoluto que você sugeriu!
             local eBloco = obj:FindFirstChild("block-place") ~= nil
             local eSemente = obj:FindFirstChild("seeds") ~= nil
             
@@ -73,18 +72,20 @@ function Manager:ProcessarProximo()
     end)
 end
 
--- A SUA LÓGICA DE DETECÇÃO DA ÁRVORE AQUI:
 function Manager:ObterBlocoRaiz(hitInstance)
     if not hitInstance then return nil end
     
-    -- 1. Verifica se é parte física de uma Árvore (galho, folha, tronco)
+    -- IGNORA O CHAPÉU DA GRAMA: Transfere o foco para o bloco real (o Pai)
+    if hitInstance:IsA("MeshPart") and hitInstance.Name:lower() == "top" then
+        hitInstance = hitInstance.Parent
+    end
+
+    -- DETECÇÃO DA ÁRVORE:
     local pastaColisao = hitInstance:FindFirstAncestor("CollisionBoxes")
     if pastaColisao and pastaColisao.Parent then
-        -- Se estiver dentro do CollisionBoxes, o bloco real é o PAI da pasta!
         return pastaColisao.Parent 
     end
     
-    -- 2. Busca padrão para blocos normais
     local current = hitInstance
     while current and current.Parent do
         if current.Parent.Name == "Blocks" then

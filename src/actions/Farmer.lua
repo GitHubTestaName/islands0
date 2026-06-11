@@ -86,7 +86,9 @@ function Farmer:AlternarAutoFazenda(valor)
                                             task.wait(0.05)
                                         end
                                         
-                                        local targetCFrame = CFrame.new(math.round(dados.Posicao.X/3)*3, dados.Posicao.Y + 3, math.round(dados.Posicao.Z/3)*3)
+                                        -- LÓGICA DE PLANTIO PURA: CFrame.new perfeito, copiando o solo e subindo!
+                                        local targetCFrame = CFrame.new(dados.Posicao.X, dados.Posicao.Y + Config.BLOCK_SIZE, dados.Posicao.Z)
+                                        
                                         local payload = {
                                             uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
                                             cframe = targetCFrame,
@@ -106,7 +108,6 @@ function Farmer:AlternarAutoFazenda(valor)
             if Manager then Manager:AtualizarStatus("Auto-Fazenda Desligada") end
         end)
     else
-        -- AQUi ESTAVA O ERRO! Corrigido para "AtualizarStatus"
         if Manager then Manager:AtualizarStatus("Ocioso") end
     end
 end

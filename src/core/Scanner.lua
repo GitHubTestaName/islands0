@@ -98,7 +98,6 @@ function Scanner:MoverSeletor(direcao)
     elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
     
-    -- Movimenta pelo Grid exato sem forçar centro arredondado para evitar pulos
     State.AncoraPart.Position = State.AncoraPart.Position + d
     if State.CaixaVisual then State.CaixaVisual.Adornee = State.AncoraPart end
     self:EscanearArea()
@@ -118,7 +117,7 @@ function Scanner:EscanearArea()
     overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
     overlapParams.FilterType = Enum.RaycastFilterType.Include
     
-    -- CORREÇÃO DOS "9 BLOCOS": Reduz o tamanho de verificação em 0.2 studs para não encostar nos vizinhos!
+    -- CORREÇÃO DOS 9 BLOCOS: Diminui milímetros para não "encostar" nas paredes dos blocos ao lado
     local querySize = State.AncoraPart.Size - Vector3.new(0.2, 0.2, 0.2)
     local partsInBox = workspace:GetPartBoundsInBox(State.AncoraPart.CFrame, querySize, overlapParams)
     
@@ -127,6 +126,11 @@ function Scanner:EscanearArea()
     local Manager = Bot.Modules.Manager
 
     for _, part in ipairs(partsInBox) do
+        local lowerName = part.Name:lower()
+        
+        -- EXCLUI O TRONCO E O TOPO DO ESCANEAMENTO
+        if lowerName == "trunk" or lowerName == "top" then continue end
+
         local rootBlock = Manager:ObterBlocoRaiz(part)
         if rootBlock and not blocosUnicos[rootBlock] then
             blocosUnicos[rootBlock] = true
@@ -171,14 +175,18 @@ function Scanner:CriarSeletorFrontal()
     local ray = workspace:Raycast(hrp.Position, Vector3.new(0, -20, 0), params)
     
     if ray and ray.Instance and Manager then
-        local rootBlock = Manager:ObterBlocoRaiz(ray.Instance)
-        if rootBlock then
-            local hitPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
-            posExata = hitPos + dirVector
+        local inst = ray.Instance
+        local lowerName = inst.Name:lower()
+        -- Se o raycast bater no tronco, finge que não bateu para não quebrar a grid
+        if lowerName ~= "trunk" and lowerName ~= "top" then
+            local rootBlock = Manager:ObterBlocoRaiz(inst)
+            if rootBlock then
+                local hitPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
+                posExata = hitPos + dirVector
+            end
         end
     end
 
-    -- ALINHAMENTO INFALÍVEL DA CRIAÇÃO INICIAL
     posExata = self:AlinharParaGrid(posExata)
 
     self:LimparAncora()
@@ -226,8 +234,6 @@ function Scanner:CriarSeletorFrontal()
         end
     end)
 
-    -- AQUI FOI O SEGREDO DO "PULO" CORRIGIDO:
-    -- Quando você soltar o botão de esticar a caixa, ele não arredonda o centro forçadamente!
     State.Handles.MouseButton1Up:Connect(function() 
         self:EscanearArea() 
     end)
