@@ -5,12 +5,12 @@ local State = Bot.State
 
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 if CoreGui:FindFirstChild("IslandsCustomUI") then
     CoreGui.IslandsCustomUI:Destroy()
 end
 
--- ================= INSTÂNCIA PRINCIPAL DA UI =================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "IslandsCustomUI"
 ScreenGui.ResetOnSpawn = false
@@ -22,65 +22,50 @@ MainFrame.Size = UDim2.new(0, 500, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 8)
-MainCorner.Parent = MainFrame
-
--- ================= SISTEMA DE REDIMENSIONAMENTO DA JANELA =================
-local WindowResizeHandle = Instance.new("TextButton", MainFrame)
-WindowResizeHandle.Size = UDim2.new(0, 20, 0, 20)
-WindowResizeHandle.Position = UDim2.new(1, -20, 1, -20)
-WindowResizeHandle.BackgroundTransparency = 1
-WindowResizeHandle.Text = "◢"
-WindowResizeHandle.TextColor3 = Color3.fromRGB(100, 100, 100)
-WindowResizeHandle.TextSize = 14
-WindowResizeHandle.ZIndex = 10
-
-local draggingWindow = false
-local dragStartPos = nil
-local startSize = nil
-
-WindowResizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingWindow = true
-        dragStartPos = input.Position
-        startSize = MainFrame.AbsoluteSize
-    end
-end)
-
--- ================= SISTEMA DE OCULTAR (KEYBIND) =================
-local currentHideKey = Enum.KeyCode.V
-local isListeningForKey = false
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed and not isListeningForKey then return end
-
-    if isListeningForKey and input.UserInputType == Enum.UserInputType.Keyboard then
-        currentHideKey = input.KeyCode
-        isListeningForKey = false
-        if State.UpdateKeybindButton then State.UpdateKeybindButton() end
-        return
-    end
-
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentHideKey then
-        MainFrame.Visible = not MainFrame.Visible
-    end
-end)
-
--- Barra de Topo
+-- ================= ARRASTAR APENAS PELO TOPBAR =================
 local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
 TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 TopBar.BorderSizePixel = 0
+TopBar.Active = true
 TopBar.Parent = MainFrame
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 1, 0)
+local dragToggle = nil
+local dragSpeed = 0.1
+local dragStart = nil
+local startPos = nil
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    TweenService:Create(MainFrame, TweenInfo.new(dragSpeed), {Position = position}):Play()
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then 
+        dragToggle = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragToggle = false end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragToggle then updateInput(input) end
+    end
+end)
+
+-- Status e Título
+local Title = Instance.new("TextLabel", TopBar)
+Title.Size = UDim2.new(0.5, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Islands Automation PRO"
@@ -88,146 +73,151 @@ Title.TextColor3 = Color3.fromRGB(240, 240, 240)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
-Title.Parent = TopBar
 
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(0, 200, 0, 20)
-StatusLabel.Position = UDim2.new(1, -215, 0, 7)
+local StatusLabel = Instance.new("TextLabel", TopBar)
+StatusLabel.Size = UDim2.new(0.5, -15, 1, 0)
+StatusLabel.Position = UDim2.new(0.5, 0, 0, 0)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Status: Ocioso"
 StatusLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
 StatusLabel.Font = Enum.Font.SourceSansSemibold
 StatusLabel.TextSize = 14
-StatusLabel.Parent = TopBar
 
-function UI:SetStatusText(texto)
-    StatusLabel.Text = "Status: " .. tostring(texto)
-end
+function UI:SetStatusText(texto) StatusLabel.Text = "Status: " .. tostring(texto) end
 
--- ================= MENU LATERAL & CONTEÚDO =================
+-- ================= REDIMENSIONAR JANELA GERAL (Canto Inferior Direito) =================
+local WindowResizeHandle = Instance.new("TextButton", MainFrame)
+WindowResizeHandle.Size = UDim2.new(0, 20, 0, 20)
+WindowResizeHandle.Position = UDim2.new(1, -20, 1, -20)
+WindowResizeHandle.BackgroundTransparency = 1
+WindowResizeHandle.Text = "◢"
+WindowResizeHandle.TextColor3 = Color3.fromRGB(150, 150, 150)
+WindowResizeHandle.TextSize = 16
+WindowResizeHandle.ZIndex = 10
+
+local draggingWindow = false
+local winDragStartPos = nil
+local winStartSize = nil
+
+WindowResizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingWindow = true
+        winDragStartPos = input.Position
+        winStartSize = MainFrame.AbsoluteSize
+    end
+end)
+
+-- ================= MENU LATERAL E DIVISÓRIA (100% RESPONSIVOS) =================
 local SidebarWidth = 110
 
-local Sidebar = Instance.new("Frame")
+local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, SidebarWidth, 1, -35)
 Sidebar.Position = UDim2.new(0, 0, 0, 35)
 Sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Sidebar.BorderSizePixel = 0
-Sidebar.ClipsDescendants = true
-Sidebar.Parent = MainFrame
 
-local SidebarLayout = Instance.new("UIListLayout")
-SidebarLayout.Padding = UDim.new(0, 4)
+local SidebarLayout = Instance.new("UIListLayout", Sidebar)
+SidebarLayout.Padding = UDim.new(0, 6)
 SidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-SidebarLayout.Parent = Sidebar
+Instance.new("UIPadding", Sidebar).PaddingTop = UDim.new(0, 10)
 
-local ContentContainer = Instance.new("Frame")
-ContentContainer.Size = UDim2.new(1, -(SidebarWidth + 10), 1, -45)
-ContentContainer.Position = UDim2.new(0, SidebarWidth + 5, 0, 40)
+local ContentContainer = Instance.new("Frame", MainFrame)
+ContentContainer.Size = UDim2.new(1, -(SidebarWidth + 5), 1, -35)
+ContentContainer.Position = UDim2.new(0, SidebarWidth + 5, 0, 35)
 ContentContainer.BackgroundTransparency = 1
-ContentContainer.Parent = MainFrame
 
--- ================= SISTEMA DE REDIMENSIONAMENTO DO MENU LATERAL =================
-local SidebarResizer = Instance.new("TextButton")
-SidebarResizer.Size = UDim2.new(0, 6, 1, -35)
+-- Divisória de Redimensionamento do Menu
+local SidebarResizer = Instance.new("TextButton", MainFrame)
+SidebarResizer.Size = UDim2.new(0, 5, 1, -35)
 SidebarResizer.Position = UDim2.new(0, SidebarWidth, 0, 35)
 SidebarResizer.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-SidebarResizer.BackgroundTransparency = 0.8 -- Fica sutil
-SidebarResizer.Text = "⋮"
-SidebarResizer.TextColor3 = Color3.fromRGB(200, 200, 200)
-SidebarResizer.TextSize = 14
-SidebarResizer.BorderSizePixel = 0
+SidebarResizer.BackgroundTransparency = 1 -- Fica invisível até passar o mouse
+SidebarResizer.Text = ""
 SidebarResizer.ZIndex = 10
-SidebarResizer.Parent = MainFrame
 
 local draggingSidebar = false
-local sidebarDragStartPos = 0
-local sidebarStartWidth = 0
+local sidebarDragStartPos = nil
+local sidebarStartWidth = nil
+
+SidebarResizer.MouseEnter:Connect(function() SidebarResizer.BackgroundTransparency = 0.5 end)
+SidebarResizer.MouseLeave:Connect(function() if not draggingSidebar then SidebarResizer.BackgroundTransparency = 1 end end)
 
 SidebarResizer.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingSidebar = true
         sidebarDragStartPos = input.Position.X
         sidebarStartWidth = Sidebar.AbsoluteSize.X
-        SidebarResizer.BackgroundTransparency = 0.2 -- Fica brilhante ao arrastar
+        SidebarResizer.BackgroundTransparency = 0.2
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    -- Arrastar da Janela Geral
-    if draggingWindow and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStartPos
-        local newWidth = math.max(450, startSize.X + delta.X)
-        local newHeight = math.max(320, startSize.Y + delta.Y)
-        MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
-    end
-
-    -- Arrastar do Menu Lateral
-    if draggingSidebar and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local deltaX = input.Position.X - sidebarDragStartPos
-        local newWidth = math.clamp(sidebarStartWidth + deltaX, 80, 200) -- Limites de largura do menu
-        
-        Sidebar.Size = UDim2.new(0, newWidth, 1, -35)
-        SidebarResizer.Position = UDim2.new(0, newWidth, 0, 35)
-        ContentContainer.Position = UDim2.new(0, newWidth + 8, 0, 40)
-        ContentContainer.Size = UDim2.new(1, -(newWidth + 12), 1, -45)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        -- Lógica de aumentar a janela principal
+        if draggingWindow then
+            local delta = input.Position - winDragStartPos
+            local newWidth = math.max(400, winStartSize.X + delta.X)
+            local newHeight = math.max(300, winStartSize.Y + delta.Y)
+            MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+        end
+        -- Lógica de arrastar o menu lateral
+        if draggingSidebar then
+            local deltaX = input.Position.X - sidebarDragStartPos
+            local newWidth = math.clamp(sidebarStartWidth + deltaX, 90, 200)
+            
+            Sidebar.Size = UDim2.new(0, newWidth, 1, -35)
+            SidebarResizer.Position = UDim2.new(0, newWidth, 0, 35)
+            -- Como usamos Width 100% Scale, diminuir a margem ajusta automaticamente o conteúdo!
+            ContentContainer.Position = UDim2.new(0, newWidth + 5, 0, 35)
+            ContentContainer.Size = UDim2.new(1, -(newWidth + 5), 1, -35)
+        end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         draggingWindow = false
-        if draggingSidebar then
-            draggingSidebar = false
-            SidebarResizer.BackgroundTransparency = 0.8
-        end
+        draggingSidebar = false
+        SidebarResizer.BackgroundTransparency = 1
     end
 end)
 
--- ================= ABAS (DESIGN PREMIUM) =================
+-- ================= ABAS (DESIGN PREMIUM SOLICITADO) =================
 local Paginas = {}
 local BotoesAba = {}
 
 local function CriarAba(nome, id)
-    local btn = Instance.new("TextButton")
-    -- Usa 90% da largura do Sidebar para deixar uma bordinha legal
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(0.9, 0, 0, 32)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.BorderSizePixel = 0
     btn.Text = nome
-    btn.TextColor3 = Color3.fromRGB(160, 160, 160)
+    btn.TextColor3 = Color3.fromRGB(150, 150, 150)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 14
-    btn.Parent = Sidebar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-    
-    -- A Mágica do Outline Azul
-    local stroke = Instance.new("UIStroke")
+    local stroke = Instance.new("UIStroke", btn)
     stroke.Color = Color3.fromRGB(0, 150, 255)
     stroke.Thickness = 1.5
-    stroke.Transparency = 1 -- Invisível por padrão
+    stroke.Transparency = 1 -- Outline invisível por padrão
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = btn
     
-    local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, 0, 1, 0)
+    local pg = Instance.new("ScrollingFrame", ContentContainer)
+    pg.Size = UDim2.new(1, 0, 1, -15) -- Deixa espaço para a scrollbar não bugar
+    pg.Position = UDim2.new(0, 0, 0, 10)
     pg.BackgroundTransparency = 1
     pg.BorderSizePixel = 0
     pg.ScrollBarThickness = 4
     pg.Visible = false
-    pg.Parent = ContentContainer
     
-    local layout = Instance.new("UIListLayout")
+    local layout = Instance.new("UIListLayout", pg)
     layout.Padding = UDim.new(0, 8)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = pg
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     
-    -- Ajusta o canvas interno dinamicamente
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
     end)
     
     Paginas[id] = pg
@@ -236,10 +226,11 @@ local function CriarAba(nome, id)
     btn.MouseButton1Click:Connect(function()
         for k, v in pairs(Paginas) do v.Visible = (k == id) end
         for k, v in pairs(BotoesAba) do 
-            local isActive = (k == id)
-            v.TextColor3 = isActive and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(160, 160, 160)
-            v.BackgroundColor3 = isActive and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(30, 30, 30)
-            v.UIStroke.Transparency = isActive and 0 or 1
+            local isAtivo = (k == id)
+            -- Cores High Contrast
+            v.TextColor3 = isAtivo and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+            v.BackgroundColor3 = isAtivo and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(30, 30, 30)
+            v.UIStroke.Transparency = isAtivo and 0 or 1
         end
     end)
 end
@@ -249,46 +240,41 @@ CriarAba("Ações", "acoes")
 CriarAba("Fazenda", "fazenda")
 CriarAba("Sistema", "sistema")
 
--- Ativa a primeira aba por padrão
 BotoesAba["seletor"].TextColor3 = Color3.fromRGB(255, 255, 255)
 BotoesAba["seletor"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["seletor"].UIStroke.Transparency = 0
 Paginas["seletor"].Visible = true
 
--- ================= COMPONENTES (100% RESPONSIVOS NA LARGURA) =================
+-- ================= COMPONENTES RESPONSIVOS (Width 95% = Adapta ao Redimensionamento) =================
 local function CriarBotaoEstilizado(texto, parent, callback)
-    local btn = Instance.new("TextButton")
-    -- A mágica da responsividade: Width é 100% (Scale 1), Height é fixa (32px)
-    btn.Size = UDim2.new(1, -10, 0, 32)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.95, 0, 0, 32)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     btn.Text = texto
     btn.TextColor3 = Color3.fromRGB(230, 230, 230)
     btn.Font = Enum.Font.SourceSansSemibold
     btn.TextSize = 14
     btn.BorderSizePixel = 0
-    btn.Parent = parent
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
 local function CriarToggleEstilizado(texto, parent, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 32)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.Parent = parent
     
-    local label = Instance.new("TextLabel")
+    local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.7, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = texto
+    label.Text = " " .. texto
     label.TextColor3 = Color3.fromRGB(210, 210, 210)
     label.Font = Enum.Font.SourceSans
     label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
     
-    local btn = Instance.new("TextButton")
+    local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(0, 50, 0, 24)
     btn.Position = UDim2.new(1, -50, 0, 4)
     btn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
@@ -297,7 +283,6 @@ local function CriarToggleEstilizado(texto, parent, callback)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 12
     btn.BorderSizePixel = 0
-    btn.Parent = frame
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     
     local estado = false
@@ -310,13 +295,11 @@ local function CriarToggleEstilizado(texto, parent, callback)
 end
 
 local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 35)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.ClipsDescendants = false
-    frame.Parent = parent
     
-    local mainBtn = Instance.new("TextButton")
+    local mainBtn = Instance.new("TextButton", frame)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
     mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     mainBtn.Text = labelTexto .. ": Clique p/ Atualizar"
@@ -324,10 +307,9 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
     mainBtn.Font = Enum.Font.SourceSansSemibold
     mainBtn.TextSize = 14
     mainBtn.BorderSizePixel = 0
-    mainBtn.Parent = frame
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
     
-    local scroll = Instance.new("ScrollingFrame")
+    local scroll = Instance.new("ScrollingFrame", frame)
     scroll.Size = UDim2.new(1, 0, 0, 120)
     scroll.Position = UDim2.new(0, 0, 1, 2)
     scroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -336,7 +318,6 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
     scroll.ZIndex = 5
     scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
     scroll.ScrollBarThickness = 4
-    scroll.Parent = frame
     Instance.new("UIListLayout", scroll)
     
     mainBtn.MouseButton1Click:Connect(function() scroll.Visible = not scroll.Visible end)
@@ -349,7 +330,7 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
         
         local hTotal = 0
         for _, itemNome in ipairs(listaItems) do
-            local itemBtn = Instance.new("TextButton")
+            local itemBtn = Instance.new("TextButton", scroll)
             itemBtn.Size = UDim2.new(1, 0, 0, 25)
             itemBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             itemBtn.BorderSizePixel = 0
@@ -358,7 +339,6 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
             itemBtn.Font = Enum.Font.SourceSans
             itemBtn.TextSize = 13
             itemBtn.ZIndex = 6
-            itemBtn.Parent = scroll
             
             hTotal = hTotal + 25
             itemBtn.MouseButton1Click:Connect(function()
@@ -372,29 +352,23 @@ local function CriarDropdownEstilizado(labelTexto, parent, stateKey)
     return dropdownObj
 end
 
--- ================= CONSTRUTOR ABA 1: SELETOR =================
+-- ================= PREENCHENDO ABA 1: SELETOR =================
 local p1 = Paginas["seletor"]
 CriarBotaoEstilizado("🟦 Gerar Cubo Azul no Personagem", p1, function()
     if Bot.Modules.Scanner then Bot.Modules.Scanner:CriarSeletorFrontal() end
 end)
 
-local PadLabel = Instance.new("TextLabel")
-PadLabel.Size = UDim2.new(1, 0, 0, 20)
-PadLabel.BackgroundTransparency = 1
-PadLabel.Text = "Movimentação Fixa:"
-PadLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-PadLabel.Font = Enum.Font.SourceSansBold
-PadLabel.TextSize = 13
-PadLabel.TextXAlignment = Enum.TextXAlignment.Left
-PadLabel.Parent = p1
+local PadContainer = Instance.new("Frame", p1)
+PadContainer.Size = UDim2.new(0.95, 0, 0, 90)
+PadContainer.BackgroundTransparency = 1
 
-local CrossContainer = Instance.new("Frame")
+local CrossContainer = Instance.new("Frame", PadContainer)
 CrossContainer.Size = UDim2.new(0, 100, 0, 80)
+CrossContainer.Position = UDim2.new(0, 10, 0, 5)
 CrossContainer.BackgroundTransparency = 1
-CrossContainer.Parent = p1
 
 local function CriarMiniBotao(texto, x, y, direcao)
-    local b = Instance.new("TextButton")
+    local b = Instance.new("TextButton", CrossContainer)
     b.Size = UDim2.new(0, 30, 0, 25)
     b.Position = UDim2.new(0, x, 0, y)
     b.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
@@ -403,7 +377,6 @@ local function CriarMiniBotao(texto, x, y, direcao)
     b.Font = Enum.Font.SourceSansBold
     b.TextSize = 14
     b.BorderSizePixel = 0
-    b.Parent = CrossContainer
     Instance.new("UICorner", b).CornerRadius = UDim.new(0, 3)
     b.MouseButton1Click:Connect(function()
         if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor(direcao) end
@@ -415,10 +388,31 @@ CriarMiniBotao("<", 2, 35, "Esquerda")
 CriarMiniBotao("v", 35, 35, "Tras")
 CriarMiniBotao(">", 68, 35, "Direita")
 
-CriarBotaoEstilizado("🔼 Subir Cubo (+3)", p1, function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Subir") end end)
-CriarBotaoEstilizado("🔽 Descer Cubo (-3)", p1, function() if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor("Descer") end end)
+local VerticalContainer = Instance.new("Frame", PadContainer)
+VerticalContainer.Size = UDim2.new(1, -125, 0, 80)
+VerticalContainer.Position = UDim2.new(0, 120, 0, 5)
+VerticalContainer.BackgroundTransparency = 1
 
--- ================= CONSTRUTOR ABA 2: AÇÕES =================
+local function CriarBtnVertical(texto, y, direcao)
+    local b = Instance.new("TextButton", VerticalContainer)
+    b.Size = UDim2.new(1, 0, 0, 25)
+    b.Position = UDim2.new(0, 0, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(45, 55, 65)
+    b.Text = texto
+    b.TextColor3 = Color3.fromRGB(240, 240, 240)
+    b.Font = Enum.Font.SourceSansSemibold
+    b.TextSize = 13
+    b.BorderSizePixel = 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+    b.MouseButton1Click:Connect(function()
+        if Bot.Modules.Scanner then Bot.Modules.Scanner:MoverSeletor(direcao) end
+    end)
+end
+
+CriarBtnVertical("🔼 Subir (+3)", 15, "Subir")
+CriarBtnVertical("🔽 Descer (-3)", 45, "Descer")
+
+-- ================= PREENCHENDO ABA 2: AÇÕES =================
 local p2 = Paginas["acoes"]
 CriarToggleEstilizado("⛏️ Ativar Loop de Mineração", p2, function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
 local DropdownBlocos = CriarDropdownEstilizado("Material", p2, "BlocoSelecionado")
@@ -429,7 +423,7 @@ CriarBotaoEstilizado("🔨 Preencher Área Selecionada", p2, function()
     if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end
 end)
 
--- ================= CONSTRUTOR ABA 3: FAZENDA =================
+-- ================= PREENCHENDO ABA 3: FAZENDA =================
 local p3 = Paginas["fazenda"]
 CriarBotaoEstilizado("🚜 Arar Terra Manualmente", p3, function() if Bot.Modules.Farmer then Bot.Modules.Farmer:ArarTerra() end end)
 local DropdownSementes = CriarDropdownEstilizado("Semente", p3, "SementeSelecionada")
@@ -438,7 +432,7 @@ CriarBotaoEstilizado("🔄 Recarregar Sementes", p3, function()
 end)
 CriarToggleEstilizado("🟢 Auto-Fazenda Ativa", p3, function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
 
--- ================= CONSTRUTOR ABA 4: SISTEMA =================
+-- ================= PREENCHENDO ABA 4: SISTEMA =================
 local p4 = Paginas["sistema"]
 
 local btnKeybind = CriarBotaoEstilizado("⌨️ Tecla de Ocultar: V", p4, function() end)
@@ -458,6 +452,20 @@ CriarBotaoEstilizado("❌ Finalizar Bot e Limpar UI", p4, function()
     if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(false) end
     if Bot.Modules.Scanner then Bot.Modules.Scanner:LimparAncora() end
     ScreenGui:Destroy()
+end)
+
+-- Sistema final de Ocultar/Mostrar com Tecla
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed and not isListeningForKey then return end
+    if isListeningForKey and input.UserInputType == Enum.UserInputType.Keyboard then
+        currentHideKey = input.KeyCode
+        isListeningForKey = false
+        if State.UpdateKeybindButton then State.UpdateKeybindButton() end
+        return
+    end
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentHideKey then
+        MainFrame.Visible = not MainFrame.Visible
+    end
 end)
 
 return UI

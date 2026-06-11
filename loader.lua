@@ -12,19 +12,11 @@ local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GI
 
 -- Inicialização do ambiente global compartilhado
 _G.IslandsBot = {
-    Config = {
-        BLOCK_SIZE = 3,
-        BaseUrl = BASE_URL
-    },
+    Config = { BLOCK_SIZE = 3, BaseUrl = BASE_URL },
     State = {
-        AncoraPart = nil,
-        Handles = nil,
-        CaixaVisual = nil,
-        MarcadoresVisuais = {},
-        ListaBlocos = {},
-        Minerando = false,
-        Construindo = false,
-        Status = "Ocioso"
+        AncoraPart = nil, Handles = nil, CaixaVisual = nil,
+        MarcadoresVisuais = {}, ListaBlocos = {},
+        Minerando = false, Construindo = false, Status = "Ocioso"
     },
     Modules = {}
 }
@@ -78,10 +70,8 @@ local function carregarModulo(caminho)
     local url = BASE_URL .. caminho
     local success, scriptContent = pcall(game.HttpGet, game, url)
     if not success or not scriptContent then return nil end
-    
-    local executable, compileError = loadstring(scriptContent)
+    local executable = loadstring(scriptContent)
     if not executable then return nil end
-    
     local loadSuccess, moduleResult = pcall(executable)
     if not loadSuccess then return nil end
     return moduleResult
@@ -93,7 +83,7 @@ local modulosParaCarregar = {
     {nome = "Miner", caminho = "src/actions/Miner.lua"},
     {nome = "Builder", caminho = "src/actions/Builder.lua"},
     {nome = "Farmer", caminho = "src/actions/Farmer.lua"},
-    {nome = "UI", caminho = "src/ui/Window.lua"} -- UI por ultimo para não sobrepor a tela de loading
+    {nome = "UI", caminho = "src/ui/Window.lua"}
 }
 
 task.spawn(function()
@@ -101,14 +91,14 @@ task.spawn(function()
     for i, mod in ipairs(modulosParaCarregar) do
         LoadStatus.Text = string.format("Carregando módulo %s... (%d%%)", mod.nome, math.floor((i/total)*100))
         
-        -- Animação suave da barra
-        TweenService:Create(BarFill, TweenInfo.new(0.2, Enum.EasingStyle.Sine), {Size = UDim2.new(i/total, 0, 1, 0)}):Play()
+        -- Animação super rápida e fluida
+        TweenService:Create(BarFill, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {Size = UDim2.new(i/total, 0, 1, 0)}):Play()
         
         _G.IslandsBot.Modules[mod.nome] = carregarModulo(mod.caminho)
-        task.wait(0.3) -- Pequeno delay para a animação do carregamento ficar bonita
+        task.wait(0.05) -- Delay mínimo só para não bugar a engine de UI do Roblox
     end
     
     LoadStatus.Text = "Concluído!"
-    task.wait(0.5)
+    task.wait(0.2)
     LoadGui:Destroy()
 end)
