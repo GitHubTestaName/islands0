@@ -14,7 +14,7 @@ function Farmer:ArarTerra()
     task.spawn(function()
         for _, dados in ipairs(State.ListaBlocos) do
             local bloco = dados.Instancia
-            if bloco and bloco.Parent then
+            if bloco and bloco:IsDescendantOf(workspace) then
                 local n = bloco.Name:lower()
                 if n:find("grass") or n:find("dirt") then
                     pcall(function() Manager.PlowRemote:InvokeServer({ block = bloco }) end)
@@ -40,7 +40,37 @@ function Farmer:AlternarAutoFazenda(valor)
                     if not State.AutoFarmingCrops then break end
                     
                     local blocoRaiz = dados.Instancia
-                    if not blocoRaiz or not blocoRaiz.Parent then continue end
+                    
+                    -- =================================================================
+                    -- SISTEMA DE CURA DE MEMÓRIA (A solução da sua descoberta!)
+                    -- Se a grama foi deletada pelo servidor para virar 'soil', 
+                    -- o bloco morre. Nós capturamos o novo bloco na mesma posição.
+                    -- =================================================================
+                    if not blocoRaiz or not blocoRaiz:IsDescendantOf(workspace) then
+                        local partes = workspace:GetPartBoundsInRadius(dados.Posicao, 0.5)
+                        local novoBloco = nil
+                        
+                        for _, p in ipairs(partes) do
+                            local lowerName = p.Name:lower()
+                            if lowerName ~= "trunk" and lowerName ~= "top" then
+                                local rb = Manager:ObterBlocoRaiz(p)
+                                if rb and rb.Name ~= "SelectionAnchor_Script" then 
+                                    novoBloco = rb 
+                                    break 
+                                end
+                            end
+                        end
+                        
+                        -- Atualiza a memória do bot com o novo 'soil'
+                        if novoBloco then
+                            dados.Instancia = novoBloco
+                            dados.Nome = novoBloco.Name
+                            blocoRaiz = novoBloco
+                        else
+                            -- Se realmente não tem nada lá, ignora
+                            continue
+                        end
+                    end
                     
                     local n = blocoRaiz.Name:lower()
                     local terraBruta = n:find("grass") or n:find("dirt")
@@ -63,6 +93,7 @@ function Farmer:AlternarAutoFazenda(valor)
                         end
 
                         if plantaObj then
+                            -- ETAPA 1: Tem planta, então Colhe
                             local payload = {
                                 dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                 player = LocalPlayer,
@@ -71,10 +102,13 @@ function Farmer:AlternarAutoFazenda(valor)
                             pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
                             task.wait(0.1)
                         else
+                            -- Não tem planta
                             if terraBruta then
+                                -- ETAPA 2: Grama normal, envia o remote de Arar!
                                 pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoRaiz }) end)
                                 task.wait(0.1)
                             elseif terraArada then
+                                -- ETAPA 3: Já é Soil, então planta usando o CFrame Exato!
                                 local nomeSemente = State.SementeSelecionada
                                 if nomeSemente and nomeSemente ~= "" and nomeSemente ~= "Nenhum item encontrado" then
                                     local char = LocalPlayer.Character
@@ -86,7 +120,7 @@ function Farmer:AlternarAutoFazenda(valor)
                                             task.wait(0.05)
                                         end
                                         
-                                        -- LÓGICA DE PLANTIO PURA: CFrame.new perfeito, copiando o solo e subindo!
+                                        -- CFrame Puro, sem rotações malucas, espelhando perfeitamente a Terra
                                         local targetCFrame = CFrame.new(dados.Posicao.X, dados.Posicao.Y + Config.BLOCK_SIZE, dados.Posicao.Z)
                                         
                                         local payload = {
