@@ -10,13 +10,31 @@ local GITHUB_REPO = "Islands"
 local BRANCH = "main"
 local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, GITHUB_REPO, BRANCH)
 
--- Inicialização do ambiente global compartilhado
+-- Inicialização do ambiente global (COM OS NOVOS ESTADOS DA FAZENDA)
 _G.IslandsBot = {
     Config = { BLOCK_SIZE = 3, BaseUrl = BASE_URL },
     State = {
+        -- O Scanner atual deixará de ser Global e passará a usar estes aqui no Passo 2:
+        ScannerGeral = nil,
+        ScannerFazenda = nil,
+        
+        -- Memória Master da Fazenda (Exatamente o que você desenhou)
+        FarmSettings = {
+            PlowGrass = false,
+            PlaceGrass = false,
+            AutoReplace = false,
+            PrioritizePlant = "Nenhum",
+            HarvestDelay = 0.1,
+            PlantDelay = 0.15,
+            AutoUseSelectedSave = false,
+            CurrentSaveName = nil
+        },
+        
+        -- Compatibilidade antiga até migrarmos 100%
         AncoraPart = nil, Handles = nil, CaixaVisual = nil,
         MarcadoresVisuais = {}, ListaBlocos = {},
-        Minerando = false, Construindo = false, Status = "Ocioso"
+        
+        Minerando = false, Construindo = false, AutoFarmingCrops = false, Status = "Ocioso"
     },
     Modules = {}
 }
@@ -79,6 +97,7 @@ end
 
 local modulosParaCarregar = {
     {nome = "Manager", caminho = "src/core/Manager.lua"},
+    {nome = "PlotManager", caminho = "src/core/PlotManager.lua"}, -- NOVO ARQUIVO!
     {nome = "Scanner", caminho = "src/core/Scanner.lua"},
     {nome = "Miner", caminho = "src/actions/Miner.lua"},
     {nome = "Builder", caminho = "src/actions/Builder.lua"},
@@ -90,14 +109,10 @@ task.spawn(function()
     local total = #modulosParaCarregar
     for i, mod in ipairs(modulosParaCarregar) do
         LoadStatus.Text = string.format("Carregando módulo %s... (%d%%)", mod.nome, math.floor((i/total)*100))
-        
-        -- Animação super rápida e fluida
         TweenService:Create(BarFill, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {Size = UDim2.new(i/total, 0, 1, 0)}):Play()
-        
         _G.IslandsBot.Modules[mod.nome] = carregarModulo(mod.caminho)
-        task.wait(0.05) -- Delay mínimo só para não bugar a engine de UI do Roblox
+        task.wait(0.05)
     end
-    
     LoadStatus.Text = "Concluído!"
     task.wait(0.2)
     LoadGui:Destroy()
