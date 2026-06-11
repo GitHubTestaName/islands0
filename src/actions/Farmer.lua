@@ -6,23 +6,62 @@ local State = Bot.State
 local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
-function Farmer:ArarTerra()
+-- Função de Radar Espacial: Encontra o bloco real em uma coordenada X,Y,Z exata
+local function ObterBlocoPorPosicao(pos, raio)
     local Manager = Bot.Modules.Manager
-    if not State.AncoraPart then return end
-    if Manager then Manager:AtualizarStatus("Arando a terra...") end
-
-    task.spawn(function()
-        for _, dados in ipairs(State.ListaBlocos) do
-            local bloco = dados.Instancia
-            if bloco and bloco:IsDescendantOf(workspace) then
-                local n = bloco.Name:lower()
-                if n:find("grass") or n:find("dirt") then
-                    pcall(function() Manager.PlowRemote:InvokeServer({ block = bloco }) end)
-                    task.wait(0.05)
+    local partes = workspace:GetPartBoundsInRadius(pos, raio)
+    local melhorBloco = nil
+    local menorDistancia = 999
+    
+    for _, p in ipairs(partes) do
+        local lowerName = p.Name:lower()
+        if lowerName ~= "trunk" and lowerName ~= "top" and lowerName ~= "selectionanchor_script" then
+            local rootBlock = Manager:ObterBlocoRaiz(p)
+            if rootBlock and rootBlock.Name ~= "SelectionAnchor_Script" then
+                local objPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
+                
+                -- Trava de segurança: Garante que o bloco está na mesma coluna (Eixo X e Z)
+                if math.abs(objPos.X - pos.X) < 1.5 and math.abs(objPos.Z - pos.Z) < 1.5 then
+                    local dist = (objPos - pos).Magnitude
+                    if dist < menorDistancia then
+                        menorDistancia = dist
+                        melhorBloco = rootBlock
+                    end
                 end
             end
         end
-        if Manager then Manager:AtualizarStatus("Area arada!") end
+    end
+    return melhorBloco
+end
+
+function Farmer:ArarTerra()
+    local Manager = Bot.Modules.Manager
+    if not State.AncoraPart then return end
+    if Manager then Manager:AtualizarStatus("Arando a terra abaixo do seletor...") end
+
+    local minCoord = State.AncoraPart.Position - (State.AncoraPart.Size / 2)
+    local maxCoord = State.AncoraPart.Position + (State.AncoraPart.Size / 2)
+
+    task.spawn(function()
+        for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
+            for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
+                for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
+                    
+                    local posPlanta = Vector3.new(x, y, z)
+                    local posSolo = posPlanta - Vector3.new(0, Config.BLOCK_SIZE, 0) -- Olha 1 bloco pra baixo
+                    
+                    local blocoSolo = ObterBlocoPorPosicao(posSolo, 1.0)
+                    if blocoSolo then
+                        local n = blocoSolo.Name:lower()
+                        if n:find("grass") or n:find("dirt") then
+                            pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
+                            task.wait(0.05)
+                        end
+                    end
+                end
+            end
+        end
+        if Manager then Manager:AtualizarStatus("Área arada!") end
     end)
 end
 
@@ -36,8 +75,7 @@ function Farmer:AlternarAutoFazenda(valor)
             while State.AutoFarmingCrops do
                 if not State.AncoraPart then break end
 
-                -- PRÉ-EQUIPAMENTO: Previne o erro "Something unexpectedly tried to set the parent"
-                -- Equipa a ferramenta apenas uma vez no início do ciclo, fora da pressa do loop.
+                -- PRÉ-EQUIPAMENTO: Resolve o bug do item sumir da mão!
                 local nomeSemente = State.SementeSelecionada
                 local char = LocalPlayer.Character
                 local toolEmUso = nil
@@ -46,93 +84,72 @@ function Farmer:AlternarAutoFazenda(valor)
                     toolEmUso = (char and char:FindFirstChild(nomeSemente)) or LocalPlayer.Backpack:FindFirstChild(nomeSemente)
                     if toolEmUso and char and toolEmUso.Parent == LocalPlayer.Backpack then
                         char.Humanoid:EquipTool(toolEmUso)
-                        task.wait(0.5) -- Espera o Roblox mover a semente com calma e segurança
+                        task.wait(0.5) 
                     end
                 end
 
-                for _, dados in ipairs(State.ListaBlocos) do
+                -- A MAGIA DA GRADE MATEMÁTICA: O loop agora anda pelo espaço vazio do cubo
+                local minCoord = State.AncoraPart.Position - (State.AncoraPart.Size / 2)
+                local maxCoord = State.AncoraPart.Position + (State.AncoraPart.Size / 2)
+
+                for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
                     if not State.AutoFarmingCrops then break end
-                    
-                    local blocoRaiz = dados.Instancia
-                    
-                    -- SISTEMA DE CURA DE MEMÓRIA (Auto-Heal)
-                    if not blocoRaiz or not blocoRaiz:IsDescendantOf(workspace) then
-                        local partes = workspace:GetPartBoundsInRadius(dados.Posicao, 0.5)
-                        local novoBloco = nil
-                        
-                        for _, p in ipairs(partes) do
-                            local lowerName = p.Name:lower()
-                            if lowerName ~= "trunk" and lowerName ~= "top" then
-                                local rb = Manager:ObterBlocoRaiz(p)
-                                if rb and rb.Name ~= "SelectionAnchor_Script" then 
-                                    novoBloco = rb 
-                                    break 
-                                end
-                            end
-                        end
-                        
-                        if novoBloco then
-                            dados.Instancia = novoBloco
-                            dados.Nome = novoBloco.Name
-                            blocoRaiz = novoBloco
-                        else
-                            continue
-                        end
-                    end
-                    
-                    local n = blocoRaiz.Name:lower()
-                    local terraBruta = n:find("grass") or n:find("dirt")
-                    local terraArada = n:find("soil") or n:find("plowed") or n:find("farm")
-                    
-                    if terraBruta or terraArada then
-                        local posPlanta = dados.Posicao + Vector3.new(0, Config.BLOCK_SIZE, 0)
-                        local plantaObj = nil
+                    for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
+                        if not State.AutoFarmingCrops then break end
+                        for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
+                            if not State.AutoFarmingCrops then break end
+                            
+                            -- posPlanta [S] = Onde a semente deve ficar (dentro do cubo azul)
+                            -- posSolo   [B] = O chão, exatos 3 studs abaixo do cubo
+                            local posPlanta = Vector3.new(x, y, z)
+                            local posSolo = posPlanta - Vector3.new(0, Config.BLOCK_SIZE, 0)
+                            
+                            local plantaObj = ObterBlocoPorPosicao(posPlanta, 1.5)
+                            local blocoSolo = ObterBlocoPorPosicao(posSolo, 1.0)
 
-                        for _, obj in ipairs(blocoRaiz.Parent:GetChildren()) do
-                            if obj ~= blocoRaiz and obj.Name ~= "SelectionAnchor_Script" then
-                                local objPos = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
-                                if math.abs(objPos.X - posPlanta.X) < 1.5 and 
-                                   math.abs(objPos.Z - posPlanta.Z) < 1.5 and 
-                                   math.abs(objPos.Y - posPlanta.Y) < 2.5 then
-                                    plantaObj = obj
-                                    break
-                                end
-                            end
-                        end
-
-                        if plantaObj then
-                            -- ETAPA 1: Colher
-                            local payload = {
-                                dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
-                                player = LocalPlayer,
-                                model = plantaObj
-                            }
-                            pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
-                            task.wait(0.1)
-                        else
-                            if terraBruta then
-                                -- ETAPA 2: Arar
-                                pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoRaiz }) end)
-                                task.wait(0.1)
-                            elseif terraArada then
-                                -- ETAPA 3: Plantar
-                                if toolEmUso then
-                                    -- A MÁGICA DOS NOMES: Corta a palavra "Seeds"
-                                    -- Exemplo: "wheatSeeds" -> "wheat"
-                                    local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
-                                    
-                                    local targetCFrame = CFrame.new(dados.Posicao.X, dados.Posicao.Y + Config.BLOCK_SIZE, dados.Posicao.Z)
-                                    
+                            -- ETAPA 1: Verifica se já tem uma planta no espaço do cubo [S]
+                            if plantaObj then
+                                local nPlanta = plantaObj.Name:lower()
+                                -- Garante que não selecionou o chão por engano
+                                if not nPlanta:find("grass") and not nPlanta:find("dirt") and not nPlanta:find("soil") and not nPlanta:find("farm") and not nPlanta:find("plowed") then
                                     local payload = {
-                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                                        cframe = targetCFrame,
-                                        blockType = blockTypeReal, -- Enviando o nome limpo pro servidor!
-                                        upperBlock = false
+                                        dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
+                                        player = LocalPlayer,
+                                        model = plantaObj
                                     }
-                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                                    task.wait(0.15) -- Mais um pouquinho de delay seguro para o Place
+                                    pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
+                                    task.wait(0.1)
+                                    continue -- Pula pro próximo quadrado pra não tentar plantar onde já colheu no mesmo milissegundo
                                 end
                             end
+                            
+                            -- ETAPA 2 e 3: Não tem planta em [S]? Olha pro chão [B]!
+                            if blocoSolo then
+                                local nSolo = blocoSolo.Name:lower()
+                                local terraBruta = nSolo:find("grass") or nSolo:find("dirt")
+                                local terraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
+                                
+                                if terraBruta then
+                                    pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
+                                    task.wait(0.1)
+                                elseif terraArada then
+                                    if toolEmUso then
+                                        -- Filtro Inteligente: "wheatSeeds" vira "wheat" pro Servidor
+                                        local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
+                                        local targetCFrame = CFrame.new(posPlanta)
+                                        
+                                        local payload = {
+                                            uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
+                                            cframe = targetCFrame,
+                                            blockType = blockTypeReal,
+                                            upperBlock = false
+                                        }
+                                        pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                        task.wait(0.15)
+                                    end
+                                end
+                            end
+
                         end
                     end
                 end
