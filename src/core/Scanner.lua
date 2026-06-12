@@ -37,7 +37,6 @@ function Scanner:LimparAncora()
 end
 
 function Scanner:CriarNumeroVisual(posicao, numero)
-    -- NOVO: Bloqueia a criação do número se o usuário pedir!
     if Bot.State.HideNumbers then return nil end
     
     local part = Instance.new("Part")
@@ -159,9 +158,8 @@ function Scanner:EscanearArea()
     end)
 
     for i, dadosBloco in ipairs(blocosEncontrados) do
-        -- Agora Marcador pode ser nil, e o script vai suportar lindamente!
         local visualPart = self:CriarNumeroVisual(dadosBloco.Posicao, i)
-        dadosBloco.Marcador = visualPart 
+        if visualPart then dadosBloco.Marcador = visualPart end
         table.insert(self.ListaBlocos, dadosBloco)
     end
 end
@@ -255,8 +253,11 @@ function Scanner:CriarSeletorFrontal()
 end
 
 function Scanner:CarregarPlot(posicao, tamanho)
-    local posAlinhada = self:AlinharParaGrid(posicao)
-    self:MontarCuboVisuais(posAlinhada, tamanho)
+    -- A MÁGICA ESTÁ AQUI: Removemos o AlinharParaGrid!
+    -- O cubo expandido (ex: 2 blocos de largura) tem o seu centro físico na divisa dos blocos (ex: 1.5 studs).
+    -- A função AlinharParaGrid estava forçando ele a ir para o centro absoluto (3 studs), empurrando o cubo inteiro para o lado!
+    -- Como a posição salva no JSON JÁ É milimetricamente perfeita, basta criarmos o cubo direto nela.
+    self:MontarCuboVisuais(posicao, tamanho)
 end
 
 Bot.State.ScannerGeral = Scanner.new(Color3.fromRGB(0, 150, 255))
