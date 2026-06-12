@@ -22,7 +22,6 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- ================= ARRASTAR APENAS PELO TOPBAR =================
 local TopBar = Instance.new("Frame", MainFrame)
 TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -65,7 +64,6 @@ UserInputService.InputChanged:Connect(function(input)
         end
     end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingWindow = false end
 end)
@@ -91,7 +89,6 @@ StatusLabel.Font = Enum.Font.SourceSansSemibold
 StatusLabel.TextSize = 14
 function UI:SetStatusText(texto) StatusLabel.Text = "Status: " .. tostring(texto) end
 
--- ================= MENU LATERAL =================
 local Sidebar = Instance.new("Frame", MainFrame)
 Sidebar.Size = UDim2.new(0, 110, 1, -35)
 Sidebar.Position = UDim2.new(0, 0, 0, 35)
@@ -136,13 +133,13 @@ local function CriarAba(nome, id)
     local layout = Instance.new("UIListLayout", pg)
     layout.Padding = UDim.new(0, 8)
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.SortOrder = Enum.SortOrder.LayoutOrder -- Ordem Estrita de layout
+    layout.SortOrder = Enum.SortOrder.LayoutOrder -- A MÁGICA DA ORDEM ESTÁ AQUI
+    
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 30)
     end)
     
     Paginas[id], BotoesAba[id] = pg, btn
-    
     btn.MouseButton1Click:Connect(function()
         for k, v in pairs(Paginas) do v.Visible = (k == id) end
         for k, v in pairs(BotoesAba) do 
@@ -163,15 +160,17 @@ BotoesAba["fazenda"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["fazenda"].UIStroke.Transparency = 0
 Paginas["fazenda"].Visible = true
 
--- ================= CONSTRUTORES DE LAYOUT (A Mágica da Ordem) =================
-local layoutOrderGlobal = 0
-local function GetOrdem() layoutOrderGlobal = layoutOrderGlobal + 1 return layoutOrderGlobal end
+-- ================= CONSTRUTORES BLINDADOS =================
+-- Cada aba tem seu próprio contador para não misturar LayoutOrder
+local ordemP1, ordemP3 = 0, 0
+local function GetP1() ordemP1 = ordemP1 + 1 return ordemP1 end
+local function GetP3() ordemP3 = ordemP3 + 1 return ordemP3 end
 
-local function CriarSecao(titulo, parent)
+local function CriarSecao(titulo, parent, order)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(0.95, 0, 0, 20)
     f.BackgroundTransparency = 1
-    f.LayoutOrder = GetOrdem()
+    f.LayoutOrder = order
     local t = Instance.new("TextLabel", f)
     t.Size = UDim2.new(1, 0, 1, 0)
     t.BackgroundTransparency = 1
@@ -183,7 +182,7 @@ local function CriarSecao(titulo, parent)
     return f
 end
 
-local function CriarBotaoEstilizado(texto, parent, callback)
+local function CriarBotaoEstilizado(texto, parent, order, callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.95, 0, 0, 32)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -192,17 +191,17 @@ local function CriarBotaoEstilizado(texto, parent, callback)
     btn.Font = Enum.Font.SourceSansSemibold
     btn.TextSize = 14
     btn.BorderSizePixel = 0
-    btn.LayoutOrder = GetOrdem()
+    btn.LayoutOrder = order
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
-local function CriarToggleEstilizado(texto, parent, stateTable, stateKey, callback)
+local function CriarToggleEstilizado(texto, parent, stateTable, stateKey, order, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.LayoutOrder = GetOrdem()
+    frame.LayoutOrder = order
     
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.7, 0, 1, 0)
@@ -234,13 +233,11 @@ local function CriarToggleEstilizado(texto, parent, stateTable, stateKey, callba
     end)
 end
 
--- ================= LINHAS HORIZONTAIS COMPACTAS =================
--- Para organizar os Checkboxes Lado a Lado
-local function CriarLinhaCheckboxes(parent, listaConfigs)
+local function CriarLinhaCheckboxes(parent, listaConfigs, order)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 24)
     frame.BackgroundTransparency = 1
-    frame.LayoutOrder = GetOrdem()
+    frame.LayoutOrder = order
     
     local layout = Instance.new("UIListLayout", frame)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -281,12 +278,11 @@ local function CriarLinhaCheckboxes(parent, listaConfigs)
     end
 end
 
--- Para organizar os Delays Lado a Lado
-local function CriarLinhaInputs(parent, listaConfigs)
+local function CriarLinhaInputs(parent, listaConfigs, order)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.LayoutOrder = GetOrdem()
+    frame.LayoutOrder = order
     
     local layout = Instance.new("UIListLayout", frame)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -324,13 +320,11 @@ local function CriarLinhaInputs(parent, listaConfigs)
     end
 end
 
--- ================= DROPDOWNS COM Z-INDEX FIXO =================
--- Adicionamos zBase para que um Dropdown não se esconda atrás do outro!
-local function CriarDropdownEstilizado(labelTexto, parent, stateTable, stateKey, isMulti, zBase)
+local function CriarDropdownEstilizado(labelTexto, parent, stateTable, stateKey, isMulti, zBase, order)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.LayoutOrder = GetOrdem()
+    frame.LayoutOrder = order
     frame.ZIndex = zBase
     
     local mainBtn = Instance.new("TextButton", frame)
@@ -431,97 +425,88 @@ end
 
 -- ================= ABA 1: GERAL (AZUL) =================
 local p1 = Paginas["seletor"]
+CriarSecao("=== MINER & BUILDER ===", p1, GetP1())
+CriarToggleEstilizado("⛏️ Ativar Loop de Mineração", p1, State, "Minerando", GetP1(), function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
+local DropdownBlocos = CriarDropdownEstilizado("Material (Build)", p1, State, "BlocoSelecionado", false, 100, GetP1())
+CriarBotaoEstilizado("🔄 Recarregar Inventário", p1, GetP1(), function() if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end end)
+CriarBotaoEstilizado("🔨 Preencher Área Selecionada", p1, GetP1(), function() if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end end)
 
-CriarSecao("=== MINER & BUILDER ===", p1)
-CriarToggleEstilizado("⛏️ Ativar Loop de Mineração", p1, State, "Minerando", function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
-local DropdownBlocos = CriarDropdownEstilizado("Material (Build)", p1, State, "BlocoSelecionado", false, 100)
-CriarBotaoEstilizado("🔄 Recarregar Inventário", p1, function() if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end end)
-CriarBotaoEstilizado("🔨 Preencher Área Selecionada", p1, function() if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end end)
-
-CriarSecao("=== CONFIG. DO SELETOR ===", p1)
+CriarSecao("=== CONFIG. DO SELETOR ===", p1, GetP1())
 CriarLinhaCheckboxes(p1, {
     { texto = "Ocultar Números", table = State, key = "HideNumbers", callback = function()
         if State.ScannerGeral then State.ScannerGeral:EscanearArea() end
+        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
     end }
-})
+}, GetP1())
 
-CriarSecao("=== SELETOR AZUL ===", p1)
-CriarBotaoEstilizado("🟦 Spawn Block (Frente)", p1, function() if State.ScannerGeral then State.ScannerGeral:CriarSeletorFrontal() end end)
+CriarSecao("=== SELETOR AZUL ===", p1, GetP1())
+CriarBotaoEstilizado("🟦 Spawn Block (Frente)", p1, GetP1(), function() if State.ScannerGeral then State.ScannerGeral:CriarSeletorFrontal() end end)
 
-local PadContainer = Instance.new("Frame", p1)
-PadContainer.Size = UDim2.new(0.95, 0, 0, 90)
-PadContainer.BackgroundTransparency = 1
-PadContainer.LayoutOrder = GetOrdem()
+local PadContainer1 = Instance.new("Frame", p1)
+PadContainer1.Size = UDim2.new(0.95, 0, 0, 90)
+PadContainer1.BackgroundTransparency = 1
+PadContainer1.LayoutOrder = GetP1()
 
-local CrossContainer = Instance.new("Frame", PadContainer)
-CrossContainer.Size = UDim2.new(0, 100, 0, 80)
-CrossContainer.Position = UDim2.new(0, 10, 0, 5)
-CrossContainer.BackgroundTransparency = 1
+local function CriarDirecionais(parentPad, scannerName)
+    local CrossContainer = Instance.new("Frame", parentPad)
+    CrossContainer.Size = UDim2.new(0, 100, 0, 80)
+    CrossContainer.Position = UDim2.new(0, 10, 0, 5)
+    CrossContainer.BackgroundTransparency = 1
 
-local function CriarMiniBotao(texto, x, y, direcao, parent, scannerName)
-    local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(0, 30, 0, 25)
-    b.Position = UDim2.new(0, x, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-    b.Text = texto
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 14
-    b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 3)
-    b.MouseButton1Click:Connect(function()
-        if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end
-    end)
+    local function CriarMini(texto, x, y, direcao)
+        local b = Instance.new("TextButton", CrossContainer)
+        b.Size = UDim2.new(0, 30, 0, 25)
+        b.Position = UDim2.new(0, x, 0, y)
+        b.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+        b.Text = texto
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Font = Enum.Font.SourceSansBold
+        b.TextSize = 14
+        b.BorderSizePixel = 0
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 3)
+        b.MouseButton1Click:Connect(function() if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end end)
+    end
+    CriarMini("^", 35, 5, "Frente"); CriarMini("<", 2, 35, "Esquerda"); CriarMini("v", 35, 35, "Tras"); CriarMini(">", 68, 35, "Direita")
+
+    local VerticalContainer = Instance.new("Frame", parentPad)
+    VerticalContainer.Size = UDim2.new(1, -125, 0, 80)
+    VerticalContainer.Position = UDim2.new(0, 120, 0, 5)
+    VerticalContainer.BackgroundTransparency = 1
+
+    local function CriarVert(texto, y, direcao)
+        local b = Instance.new("TextButton", VerticalContainer)
+        b.Size = UDim2.new(1, 0, 0, 25)
+        b.Position = UDim2.new(0, 0, 0, y)
+        b.BackgroundColor3 = Color3.fromRGB(45, 55, 65)
+        b.Text = texto
+        b.TextColor3 = Color3.fromRGB(240, 240, 240)
+        b.Font = Enum.Font.SourceSansSemibold
+        b.TextSize = 13
+        b.BorderSizePixel = 0
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+        b.MouseButton1Click:Connect(function() if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end end)
+    end
+    CriarVert("🔼 Subir (+3)", 15, "Subir"); CriarVert("🔽 Descer (-3)", 45, "Descer")
 end
-
-CriarMiniBotao("^", 35, 5, "Frente", CrossContainer, "ScannerGeral")
-CriarMiniBotao("<", 2, 35, "Esquerda", CrossContainer, "ScannerGeral")
-CriarMiniBotao("v", 35, 35, "Tras", CrossContainer, "ScannerGeral")
-CriarMiniBotao(">", 68, 35, "Direita", CrossContainer, "ScannerGeral")
-
-local VerticalContainer = Instance.new("Frame", PadContainer)
-VerticalContainer.Size = UDim2.new(1, -125, 0, 80)
-VerticalContainer.Position = UDim2.new(0, 120, 0, 5)
-VerticalContainer.BackgroundTransparency = 1
-
-local function CriarBtnVertical(texto, y, direcao, parent, scannerName)
-    local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(1, 0, 0, 25)
-    b.Position = UDim2.new(0, 0, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(45, 55, 65)
-    b.Text = texto
-    b.TextColor3 = Color3.fromRGB(240, 240, 240)
-    b.Font = Enum.Font.SourceSansSemibold
-    b.TextSize = 13
-    b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
-    b.MouseButton1Click:Connect(function()
-        if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end
-    end)
-end
-
-CriarBtnVertical("🔼 Subir (+3)", 15, "Subir", VerticalContainer, "ScannerGeral")
-CriarBtnVertical("🔽 Descer (-3)", 45, "Descer", VerticalContainer, "ScannerGeral")
+CriarDirecionais(PadContainer1, "ScannerGeral")
 
 
 -- ================= ABA 3: FAZENDA (A OBRA DE ARTE) =================
 local p3 = Paginas["fazenda"]
 
-CriarSecao("=== MAIN FARM ===", p3)
-CriarToggleEstilizado("🟢 Start Farm", p3, State, "AutoFarmingCrops", function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
+CriarSecao("=== MAIN FARM ===", p3, GetP3())
+CriarToggleEstilizado("🟢 Start Farm", p3, State, "AutoFarmingCrops", GetP3(), function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
 
 CriarLinhaCheckboxes(p3, {
     { texto = "Plow Grass", table = State.FarmSettings, key = "PlowGrass" },
     { texto = "Place Grass", table = State.FarmSettings, key = "PlaceGrass" },
     { texto = "Auto Replace", table = State.FarmSettings, key = "AutoReplace" }
-})
+}, GetP3())
 
-CriarSecao("=== SEED SELECT ===", p3)
--- Passando "State" e Z-Index = 150 para que a lista de Sementes caia sobre a lista de Priorize!
-local DropdownSementes = CriarDropdownEstilizado("Sementes", p3, State, "SementeSelecionada", true, 150)
--- Passando "State.FarmSettings" com a chave correta e Z-Index menor
-local PriorizeDropdown = CriarDropdownEstilizado("Priorize Plant", p3, State.FarmSettings, "PrioritizePlant", false, 100)
-CriarBotaoEstilizado("🔄 Refresh Seeds", p3, function()
+CriarSecao("=== SEED SELECT ===", p3, GetP3())
+local DropdownSementes = CriarDropdownEstilizado("Sementes", p3, State, "SementeSelecionada", true, 150, GetP3())
+local PriorizeDropdown = CriarDropdownEstilizado("Priorize Plant", p3, State.FarmSettings, "PrioritizePlant", false, 100, GetP3())
+CriarBotaoEstilizado("🔄 Refresh Seeds", p3, GetP3(), function()
     if Bot.Modules.Manager then 
         local inv = Bot.Modules.Manager:GetInventoryTools("Seed")
         DropdownSementes:Refresh(inv)
@@ -529,52 +514,36 @@ CriarBotaoEstilizado("🔄 Refresh Seeds", p3, function()
     end
 end)
 
-CriarSecao("=== CONFIGURE DELAY ===", p3)
+CriarSecao("=== CONFIGURE DELAY ===", p3, GetP3())
 CriarLinhaInputs(p3, {
     { texto = "Harvest (s)", table = State.FarmSettings, key = "HarvestDelay" },
     { texto = "Plant (s)", table = State.FarmSettings, key = "PlantDelay" }
-})
+}, GetP3())
 
-CriarSecao("=== CONFIGURAÇÃO DO SELETOR ===", p3)
+CriarSecao("=== CONFIGURAÇÃO DO SELETOR ===", p3, GetP3())
 CriarLinhaCheckboxes(p3, {
     { texto = "Ocultar Números", table = State, key = "HideNumbers", callback = function()
         if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
+        if State.ScannerGeral then State.ScannerGeral:EscanearArea() end
     end }
-})
+}, GetP3())
 
-CriarSecao("=== SELECTOR & SAVES ===", p3)
-CriarBotaoEstilizado("🟩 Spawn Block Verde", p3, function()
+CriarSecao("=== SELECTOR & SAVES ===", p3, GetP3())
+CriarBotaoEstilizado("🟩 Spawn Block Verde", p3, GetP3(), function()
     if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end
 end)
 
 local PadFazenda = Instance.new("Frame", p3)
 PadFazenda.Size = UDim2.new(0.95, 0, 0, 90)
 PadFazenda.BackgroundTransparency = 1
-PadFazenda.LayoutOrder = GetOrdem()
+PadFazenda.LayoutOrder = GetP3()
+CriarDirecionais(PadFazenda, "ScannerFazenda")
 
-local CrossFazenda = Instance.new("Frame", PadFazenda)
-CrossFazenda.Size = UDim2.new(0, 100, 0, 80)
-CrossFazenda.Position = UDim2.new(0, 10, 0, 5)
-CrossFazenda.BackgroundTransparency = 1
-
-CriarMiniBotao("^", 35, 5, "Frente", CrossFazenda, "ScannerFazenda")
-CriarMiniBotao("<", 2, 35, "Esquerda", CrossFazenda, "ScannerFazenda")
-CriarMiniBotao("v", 35, 35, "Tras", CrossFazenda, "ScannerFazenda")
-CriarMiniBotao(">", 68, 35, "Direita", CrossFazenda, "ScannerFazenda")
-
-local VertFazenda = Instance.new("Frame", PadFazenda)
-VertFazenda.Size = UDim2.new(1, -125, 0, 80)
-VertFazenda.Position = UDim2.new(0, 120, 0, 5)
-VertFazenda.BackgroundTransparency = 1
-
-CriarBtnVertical("🔼 Subir (+3)", 15, "Subir", VertFazenda, "ScannerFazenda")
-CriarBtnVertical("🔽 Descer (-3)", 45, "Descer", VertFazenda, "ScannerFazenda")
-
--- LINHA DE SALVAMENTO DE PLOTS (Save)
+-- LINHA DE SALVAMENTO
 local rowSave = Instance.new("Frame", p3)
 rowSave.Size = UDim2.new(0.95, 0, 0, 32)
 rowSave.BackgroundTransparency = 1
-rowSave.LayoutOrder = GetOrdem()
+rowSave.LayoutOrder = GetP3()
 
 local inputPlot = Instance.new("TextBox", rowSave)
 inputPlot.Size = UDim2.new(0.65, -5, 1, 0)
@@ -596,7 +565,6 @@ btnSave.Font = Enum.Font.SourceSansBold
 btnSave.TextSize = 14
 Instance.new("UICorner", btnSave).CornerRadius = UDim.new(0, 4)
 
--- Forward Declaration
 local plotDropdown = nil 
 
 local function AtualizarListaSaves()
@@ -610,22 +578,27 @@ local function AtualizarListaSaves()
 end
 
 btnSave.MouseButton1Click:Connect(function()
-    local cubo = State.ScannerFazenda.AncoraPart
+    local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
     if inputPlot.Text ~= "" and cubo then
-        Bot.Modules.PlotManager:SalvarPlot(inputPlot.Text, cubo.Position, cubo.Size)
-        AtualizarListaSaves()
-        inputPlot.Text = ""
+        local sucesso = Bot.Modules.PlotManager:SalvarPlot(inputPlot.Text, cubo.Position, cubo.Size)
+        if sucesso then
+            if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("Plot salvo com sucesso!") end
+            AtualizarListaSaves()
+            inputPlot.Text = ""
+        else
+            if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("ERRO ao salvar o Plot!") end
+        end
+    else
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("ERRO: Crie um cubo e digite um nome!") end
     end
 end)
 
--- SOLUÇÃO DO BUG: Passamos a tabela CORRETA (State.FarmSettings) e a Key "CurrentSaveName"
-plotDropdown = CriarDropdownEstilizado("Select Save", p3, State.FarmSettings, "CurrentSaveName", false, 50)
+plotDropdown = CriarDropdownEstilizado("Select Save", p3, State.FarmSettings, "CurrentSaveName", false, 50, GetP3())
 
--- LINHA DE AÇÕES (Load, Rewrite, Delete)
 local rowActions = Instance.new("Frame", p3)
 rowActions.Size = UDim2.new(0.95, 0, 0, 32)
 rowActions.BackgroundTransparency = 1
-rowActions.LayoutOrder = GetOrdem()
+rowActions.LayoutOrder = GetP3()
 
 local layoutActions = Instance.new("UIListLayout", rowActions)
 layoutActions.FillDirection = Enum.FillDirection.Horizontal
@@ -633,7 +606,7 @@ layoutActions.Padding = UDim.new(0, 5)
 
 local function CriarAcaoPlot(texto, cor, callback)
     local b = Instance.new("TextButton", rowActions)
-    b.Size = UDim2.new(0.33, -3, 1, 0)
+    b.Size = UDim2.new(0.33, -5, 1, 0)
     b.BackgroundColor3 = cor
     b.Text = texto
     b.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -643,22 +616,31 @@ local function CriarAcaoPlot(texto, cor, callback)
     b.MouseButton1Click:Connect(callback)
 end
 
--- AÇÕES CORRIGIDAS PUXANDO DO LOCAL CERTO
 CriarAcaoPlot("Load", Color3.fromRGB(0, 150, 100), function()
     local sn = State.FarmSettings.CurrentSaveName
     if sn and sn ~= "Nenhum" then
         local p = Bot.Modules.PlotManager:ObterTodos()[sn]
         if p and State.ScannerFazenda then 
             State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) 
+            if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("Plot [" .. sn .. "] Carregado!") end
+        else
+            if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("ERRO: Plot não encontrado na memória.") end
         end
+    else
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("ERRO: Selecione um plot na lista.") end
     end
 end)
 
 CriarAcaoPlot("Rewrite", Color3.fromRGB(200, 100, 0), function()
     local sn = State.FarmSettings.CurrentSaveName
-    local cubo = State.ScannerFazenda.AncoraPart
+    local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
     if sn and sn ~= "Nenhum" and cubo then
-        Bot.Modules.PlotManager:SalvarPlot(sn, cubo.Position, cubo.Size)
+        local sucesso = Bot.Modules.PlotManager:SalvarPlot(sn, cubo.Position, cubo.Size)
+        if sucesso then
+            if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("Plot [" .. sn .. "] Sobrescrito!") end
+        end
+    else
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("ERRO: Crie o seletor verde e escolha um plot.") end
     end
 end)
 
@@ -666,13 +648,15 @@ CriarAcaoPlot("Delete", Color3.fromRGB(200, 50, 50), function()
     local sn = State.FarmSettings.CurrentSaveName
     if sn and sn ~= "Nenhum" then
         Bot.Modules.PlotManager:DeletarPlot(sn)
+        State.FarmSettings.CurrentSaveName = "Nenhum"
         AtualizarListaSaves()
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("Plot deletado com sucesso!") end
     end
 end)
 
 CriarLinhaCheckboxes(p3, {
     { texto = "Auto use Selected Save", table = State.FarmSettings, key = "AutoUseSelectedSave" }
-})
+}, GetP3())
 
 task.spawn(function()
     task.wait(1)
@@ -681,8 +665,10 @@ end)
 
 -- ================= ABA 4: SISTEMA =================
 local p4 = Paginas["sistema"]
+local ordemP4 = 0
+local function GetP4() ordemP4 = ordemP4 + 1 return ordemP4 end
 
-local btnKeybind = CriarBotaoEstilizado("⌨️ Tecla de Ocultar: V", p4, function() end)
+local btnKeybind = CriarBotaoEstilizado("⌨️ Tecla de Ocultar: V", p4, GetP4(), function() end)
 btnKeybind.MouseButton1Click:Connect(function()
     isListeningForKey = true
     btnKeybind.Text = "⌨️ Pressione uma tecla..."
@@ -694,7 +680,7 @@ State.UpdateKeybindButton = function()
     btnKeybind.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 end
 
-CriarBotaoEstilizado("❌ Finalizar Bot e Limpar UI", p4, function()
+CriarBotaoEstilizado("❌ Finalizar Bot e Limpar UI", p4, GetP4(), function()
     if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(false) end
     if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(false) end
     if State.ScannerGeral then State.ScannerGeral:LimparAncora() end

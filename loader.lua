@@ -1,47 +1,33 @@
 -- loader.lua
--- Ponto de entrada para carregar a automação modularizada
-
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
--- Configuração do repositório
 local GITHUB_USER = "GitHubTestaName"
 local GITHUB_REPO = "Islands"
 local BRANCH = "main"
 local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, GITHUB_REPO, BRANCH)
 
--- Inicialização do ambiente global
 _G.IslandsBot = {
     Config = { BLOCK_SIZE = 3, BaseUrl = BASE_URL },
     State = {
         ScannerGeral = nil,
         ScannerFazenda = nil,
-        
-        HideNumbers = false, -- NOVO ESTADO: Ocultar números dos blocos
+        HideNumbers = false, -- NOVO ESTADO AQUI
         
         FarmSettings = {
-            PlowGrass = false,
-            PlaceGrass = false,
-            AutoReplace = false,
-            PrioritizePlant = "Nenhum",
-            HarvestDelay = 0.1,
-            PlantDelay = 0.15,
-            AutoUseSelectedSave = false,
-            CurrentSaveName = "Nenhum"
+            PlowGrass = false, PlaceGrass = false, AutoReplace = false,
+            PrioritizePlant = "Nenhum", HarvestDelay = 0.1, PlantDelay = 0.15,
+            AutoUseSelectedSave = false, CurrentSaveName = "Nenhum"
         },
         
         AncoraPart = nil, Handles = nil, CaixaVisual = nil,
         MarcadoresVisuais = {}, ListaBlocos = {},
-        
         Minerando = false, Construindo = false, AutoFarmingCrops = false, Status = "Ocioso"
     },
     Modules = {}
 }
 
--- ================= TELA DE CARREGAMENTO =================
-if CoreGui:FindFirstChild("IslandsLoadingUI") then
-    CoreGui.IslandsLoadingUI:Destroy()
-end
+if CoreGui:FindFirstChild("IslandsLoadingUI") then CoreGui.IslandsLoadingUI:Destroy() end
 
 local LoadGui = Instance.new("ScreenGui", CoreGui)
 LoadGui.Name = "IslandsLoadingUI"
@@ -82,7 +68,6 @@ BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
--- ================= FUNÇÃO DE CARREGAMENTO =================
 local function carregarModulo(caminho)
     local url = BASE_URL .. caminho
     local success, scriptContent = pcall(game.HttpGet, game, url)
