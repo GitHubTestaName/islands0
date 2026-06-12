@@ -6,54 +6,21 @@ local State = Bot.State
 local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
-local function ObterBlocoPorPosicao(pos, raio)
-    local Manager = Bot.Modules.Manager
-    local partes = workspace:GetPartBoundsInRadius(pos, raio)
-    local melhorBloco = nil
-    local menorDistancia = 999
-    
-    for _, p in ipairs(partes) do
-        local lowerName = p.Name:lower()
-        if lowerName ~= "trunk" and lowerName ~= "top" and lowerName ~= "selectionanchor_script" then
-            local rootBlock = Manager:ObterBlocoRaiz(p)
-            if rootBlock and rootBlock.Name ~= "SelectionAnchor_Script" then
-                local objPos = rootBlock:IsA("Model") and rootBlock:GetPivot().Position or rootBlock.Position
-                if math.abs(objPos.X - pos.X) < 1.5 and math.abs(objPos.Z - pos.Z) < 1.5 then
-                    local dist = (objPos - pos).Magnitude
-                    if dist < menorDistancia then
-                        menorDistancia = dist
-                        melhorBloco = rootBlock
-                    end
-                end
-            end
-        end
-    end
-    return melhorBloco
-end
-
 function Farmer:ArarTerra()
     local Manager = Bot.Modules.Manager
     local Scanner = State.ScannerFazenda
     if not Scanner or not Scanner.AncoraPart then return end
-    if Manager then Manager:AtualizarStatus("Arando a terra abaixo do seletor...") end
+    if Manager then Manager:AtualizarStatus("Arando a terra...") end
 
-    local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
-    local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
-
+    local bounds = workspace:GetPartBoundsInBox(Scanner.AncoraPart.CFrame, Scanner.AncoraPart.Size)
     task.spawn(function()
-        for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
-            for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
-                for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
-                    local posPlanta = Vector3.new(x, y, z)
-                    local posSolo = posPlanta - Vector3.new(0, Config.BLOCK_SIZE, 0)
-                    local blocoSolo = ObterBlocoPorPosicao(posSolo, 1.0)
-                    if blocoSolo then
-                        local n = blocoSolo.Name:lower()
-                        if n:find("grass") or n:find("dirt") then
-                            pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
-                            task.wait(0.05)
-                        end
-                    end
+        for _, p in ipairs(bounds) do
+            local n = p.Name:lower()
+            if n:find("grass") or n:find("dirt") then
+                local root = Manager:ObterBlocoRaiz(p)
+                if root then
+                    pcall(function() Manager.PlowRemote:InvokeServer({ block = root }) end)
+                    task.wait(0.05)
                 end
             end
         end
@@ -66,7 +33,6 @@ function Farmer:AlternarAutoFazenda(valor)
     local Manager = Bot.Modules.Manager
 
     if valor then
-        -- INTEGRAÇÃO COM OS SAVES: Carrega automaticamente se estiver marcado
         if State.FarmSettings.AutoUseSelectedSave and State.FarmSettings.CurrentSaveName then
             local PlotManager = Bot.Modules.PlotManager
             local plots = PlotManager:ObterTodos()
@@ -88,6 +54,9 @@ function Farmer:AlternarAutoFazenda(valor)
             while State.AutoFarmingCrops do
                 if not Scanner.AncoraPart then break end
 
+                -- =========================================================
+                -- 1. PRÉ-EQUIPAMENTO DE SEMENTES
+                -- =========================================================
                 local stateSementes = State.SementeSelecionada
                 if type(stateSementes) ~= "table" then stateSementes = {["All"] = true} end
                 
@@ -103,12 +72,51 @@ function Farmer:AlternarAutoFazenda(valor)
                     end
                 end
 
-                -- A LÓGICA DE PRIORIDADE QUE VOCÊ PEDIU
                 local prioridade = State.FarmSettings.PrioritizePlant
                 if prioridade and prioridade ~= "Nenhum" then
                     table.sort(sementesDisponiveis, function(a, b) return a == prioridade end)
                 end
 
+                local toolEmUso = nil
+                for _, semente in ipairs(sementesDisponiveis) do
+                    toolEmUso = (char and char:FindFirstChild(semente)) or LocalPlayer.Backpack:FindFirstChild(semente)
+                    if toolEmUso then
+                        if char and toolEmUso.Parent == LocalPlayer.Backpack then
+                            char.Humanoid:EquipTool(toolEmUso)
+                            task.wait(0.2)
+                        end
+                        break
+                    end
+                end
+
+                -- =========================================================
+                -- 2. CACHE NA VELOCIDADE DA LUZ (Zero Lag Spatial Queries)
+                -- =========================================================
+                local cacheSolos = {}
+                local cachePlantas = {}
+                local bounds = workspace:GetPartBoundsInBox(Scanner.AncoraPart.CFrame, Scanner.AncoraPart.Size)
+                
+                for _, p in ipairs(bounds) do
+                    local root = Manager:ObterBlocoRaiz(p)
+                    if root and root.Name ~= "SelectionAnchor_Script" then
+                        local n = root.Name:lower()
+                        if n ~= "trunk" and n ~= "top" then
+                            local pos = root:IsA("Model") and root:GetPivot().Position or root.Position
+                            local posGrid = Scanner:AlinharParaGrid(pos)
+                            local key = string.format("%.1f_%.1f_%.1f", posGrid.X, posGrid.Y, posGrid.Z)
+                            
+                            if n:find("grass") or n:find("dirt") or n:find("soil") or n:find("plowed") or n:find("farm") then
+                                cacheSolos[key] = root
+                            else
+                                cachePlantas[key] = root
+                            end
+                        end
+                    end
+                end
+
+                -- =========================================================
+                -- 3. LOOP DA MATEMÁTICA COM VERIFICAÇÃO INSTANTÂNEA
+                -- =========================================================
                 local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
 
@@ -122,12 +130,16 @@ function Farmer:AlternarAutoFazenda(valor)
                             local posPlanta = Vector3.new(x, y, z)
                             local posSolo = posPlanta - Vector3.new(0, Config.BLOCK_SIZE, 0)
                             
-                            local plantaObj = ObterBlocoPorPosicao(posPlanta, 1.5)
-                            local blocoSolo = ObterBlocoPorPosicao(posSolo, 1.0)
+                            local keyPlanta = string.format("%.1f_%.1f_%.1f", posPlanta.X, posPlanta.Y, posPlanta.Z)
+                            local keySolo = string.format("%.1f_%.1f_%.1f", posSolo.X, posSolo.Y, posSolo.Z)
+                            
+                            local plantaObj = cachePlantas[keyPlanta]
+                            local blocoSolo = cacheSolos[keySolo]
 
+                            -- MAGIA DO STAGE-X: Busca o "Harvestable" recursivamente ignorando a pasta do estágio!
                             if plantaObj then
-                                local nPlanta = plantaObj.Name:lower()
-                                if not nPlanta:find("grass") and not nPlanta:find("dirt") and not nPlanta:find("soil") and not nPlanta:find("farm") and not nPlanta:find("plowed") then
+                                local isMadura = plantaObj:FindFirstChild("Harvestable", true)
+                                if isMadura then
                                     local payload = {
                                         dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                         player = LocalPlayer,
@@ -135,11 +147,11 @@ function Farmer:AlternarAutoFazenda(valor)
                                     }
                                     pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
                                     task.wait(State.FarmSettings.HarvestDelay or 0.1)
-                                    continue 
                                 end
+                                -- Se não estiver madura, ele pula SEM NENHUM WAIT! Zero Lag!
+                                continue 
                             end
                             
-                            -- A INTELIGÊNCIA DO BURACO (Place Grass)
                             if not blocoSolo and State.FarmSettings.PlaceGrass then
                                 local blockGrass = LocalPlayer.Backpack:FindFirstChild("grass") or (char and char:FindFirstChild("grass"))
                                 if blockGrass then
@@ -151,7 +163,7 @@ function Farmer:AlternarAutoFazenda(valor)
                                     }
                                     pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
                                     task.wait(0.15)
-                                    blocoSolo = ObterBlocoPorPosicao(posSolo, 1.0) -- Atualiza a memória
+                                    -- A Terra será detectada na próxima varredura de 1 segundo.
                                 end
                             end
 
@@ -160,39 +172,24 @@ function Farmer:AlternarAutoFazenda(valor)
                                 local terraBruta = nSolo:find("grass") or nSolo:find("dirt")
                                 local terraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
                                 
-                                -- A INTELIGÊNCIA DO ARADO AUTOMÁTICO (Plow Grass)
                                 if terraBruta and State.FarmSettings.PlowGrass then
                                     pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
                                     task.wait(0.1)
                                     terraArada = true 
                                 end
                                 
-                                -- A INTELIGÊNCIA DE REPOSIÇÃO (Auto Replace Seed)
-                                if terraArada and State.FarmSettings.AutoReplace then
-                                    local ferramentaEquipar = nil
-                                    for _, semente in ipairs(sementesDisponiveis) do
-                                        ferramentaEquipar = (char and char:FindFirstChild(semente)) or LocalPlayer.Backpack:FindFirstChild(semente)
-                                        if ferramentaEquipar then break end
-                                    end
-
-                                    if ferramentaEquipar then
-                                        if char and ferramentaEquipar.Parent == LocalPlayer.Backpack then
-                                            char.Humanoid:EquipTool(ferramentaEquipar)
-                                            task.wait(0.05)
-                                        end
-
-                                        local blockTypeReal = ferramentaEquipar.Name:gsub("Seeds", ""):gsub("seeds", "")
-                                        local targetCFrame = CFrame.new(posPlanta)
-                                        
-                                        local payload = {
-                                            uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                                            cframe = targetCFrame,
-                                            blockType = blockTypeReal,
-                                            upperBlock = false
-                                        }
-                                        pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                                        task.wait(State.FarmSettings.PlantDelay or 0.15)
-                                    end
+                                if terraArada and State.FarmSettings.AutoReplace and toolEmUso then
+                                    local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
+                                    local targetCFrame = CFrame.new(posPlanta)
+                                    
+                                    local payload = {
+                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
+                                        cframe = targetCFrame,
+                                        blockType = blockTypeReal,
+                                        upperBlock = false
+                                    }
+                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                    task.wait(State.FarmSettings.PlantDelay or 0.15)
                                 end
                             end
 
