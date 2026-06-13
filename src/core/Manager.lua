@@ -16,6 +16,7 @@ function Manager:ObterBlocoRaiz(part)
     return part:IsA("BasePart") and part or nil
 end
 
+-- ================= A REGRA EXATA DE INVENTÁRIO (BLOCK-PLACE) =================
 function Manager:GetInventoryTools(filtroTipo)
     local player = Players.LocalPlayer
     local toolsEncontradas = {}
@@ -23,35 +24,43 @@ function Manager:GetInventoryTools(filtroTipo)
 
     local function processarItem(item)
         if item:IsA("Tool") and not itensProcessados[item.Name] then
-            if filtroTipo == "Block" and (item.Name:match("Block") or item:FindFirstChild("block-meta")) then
-                table.insert(toolsEncontradas, item.Name)
-                itensProcessados[item.Name] = true
-            elseif filtroTipo == "Seed" then
-                -- PROCURA PELO NOME OU PELO SCRIPT INTERNO "SEED"
-                local isSeed = item.Name:lower():match("seed") or item:FindFirstChild("cropSeed")
-                if not isSeed then
-                    for _, child in ipairs(item:GetChildren()) do
-                        if child:IsA("LocalScript") and child.Name:lower() == "seed" then
-                            isSeed = true break
-                        end
+            local atendeFiltro = false
+            
+            -- Varre tudo dentro da Tool procurando os LocalScripts chave
+            for _, child in ipairs(item:GetDescendants()) do
+                if child:IsA("LocalScript") then
+                    local lowerName = child.Name:lower()
+                    
+                    if filtroTipo == "Block" and lowerName == "block-place" then
+                        atendeFiltro = true
+                        break
+                    elseif filtroTipo == "Seed" and lowerName == "seed" then
+                        atendeFiltro = true
+                        break
                     end
                 end
-                
-                if isSeed then
-                    table.insert(toolsEncontradas, item.Name)
-                    itensProcessados[item.Name] = true
-                end
+            end
+
+            if atendeFiltro then
+                table.insert(toolsEncontradas, item.Name)
+                itensProcessados[item.Name] = true
             end
         end
     end
 
+    -- 1. Olha para a mão do boneco
     if player.Character then
         for _, item in ipairs(player.Character:GetChildren()) do processarItem(item) end
     end
-    for _, item in ipairs(player.Backpack:GetChildren()) do processarItem(item) end
+    
+    -- 2. Olha para a mochila (Backpack) inteira
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do processarItem(item) end
+    end
 
     table.sort(toolsEncontradas)
-    return #toolsEncontradas > 0 and toolsEncontradas or {"Nenhum item encontrado"}
+    return toolsEncontradas
 end
 
 function Manager:GetAllSeedsInGame()
@@ -61,25 +70,20 @@ function Manager:GetAllSeedsInGame()
     if rsTools then
         for _, tool in ipairs(rsTools:GetChildren()) do
             if tool:IsA("Tool") or tool:IsA("Folder") then
-                -- LÓGICA CORRIGIDA: LÊ OS ARQUIVOS PROFUNDOS DOS DEVS
-                local isSeed = tool.Name:lower():match("seed") or tool:FindFirstChild("cropSeed")
-                if not isSeed then
-                    for _, child in ipairs(tool:GetChildren()) do
-                        if child:IsA("LocalScript") and child.Name:lower() == "seed" then
-                            isSeed = true break
+                for _, child in ipairs(tool:GetDescendants()) do
+                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                        if not table.find(allSeeds, tool.Name) then
+                            table.insert(allSeeds, tool.Name)
                         end
+                        break
                     end
-                end
-                
-                if isSeed and not table.find(allSeeds, tool.Name) then
-                    table.insert(allSeeds, tool.Name)
                 end
             end
         end
     end
     
     table.sort(allSeeds)
-    return #allSeeds > 0 and allSeeds or {"Nenhuma Semente Encontrada"}
+    return allSeeds
 end
 
 function Manager:AtualizarStatus(mensagem)

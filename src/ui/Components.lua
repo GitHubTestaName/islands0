@@ -1,7 +1,6 @@
 -- src/ui/Components.lua
 local Components = {}
 
--- ================= VARIÁVEIS DE TEMA (DESIGN SYSTEM) =================
 Components.Theme = {
     CardBG = Color3.fromRGB(32, 32, 32),
     CardStroke = Color3.fromRGB(60, 60, 60),
@@ -36,8 +35,6 @@ function Components:GetInnerOrder()
     self.innerOrderGlobal = self.innerOrderGlobal + 1 
     return self.innerOrderGlobal 
 end
-
--- ================= CONSTRUTORES DE INTERFACE =================
 
 function Components:CriarCard(titulo, parent)
     local order, baseZ = self:GetOrdem()
@@ -263,22 +260,7 @@ function Components:CriarInputLargo(placeholder, parentRow, cardZBase)
     return input
 end
 
--- ================= NOVO: MOLDE PARA ITEM DA LISTA =================
-function Components:CriarItemDropdown(texto, isPar, parent, zIndexBase)
-    local itemBtn = Instance.new("TextButton", parent)
-    itemBtn.Size = UDim2.new(1, 0, 0, 30)
-    -- Usa a referência Absoluta de Components para não dar crash de escopo (nil value)
-    itemBtn.BackgroundColor3 = isPar and Components.Theme.PanelBG or Components.Theme.CardBG
-    itemBtn.BorderSizePixel = 0
-    itemBtn.Text = "   " .. texto
-    itemBtn.TextColor3 = Components.Theme.TextWhite
-    itemBtn.Font = Enum.Font.SourceSans
-    itemBtn.TextSize = 13
-    itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-    itemBtn.ZIndex = zIndexBase
-    return itemBtn
-end
-
+-- ================= O DROPDOWN BLINDADO E CORRIGIDO =================
 function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
@@ -357,16 +339,16 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     
     function dropdownObj:Refresh(listaItems)
         if type(listaItems) ~= "table" then listaItems = {} end
+        
         for _, old in ipairs(scroll:GetChildren()) do if old:IsA("TextButton") then old:Destroy() end end
         todosBotoes = {}
         
         local itemsToRender = {}
         if isMulti then table.insert(itemsToRender, "All") end
+        for _, item in ipairs(listaItems) do table.insert(itemsToRender, item) end
         
-        for _, item in ipairs(listaItems) do 
-            if item ~= "Nenhuma Ferramenta Equipada" and item ~= "Ainda não carregou / Vazio" then
-                table.insert(itemsToRender, item) 
-            end
+        if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then
+            table.insert(itemsToRender, "Nenhum Encontrado")
         end
 
         local function atualizarMainText()
@@ -382,9 +364,19 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
             end
         end
         
+        -- AQUI ESTÁ A CORREÇÃO: CRIA O BOTÃO DIRETAMENTE AQUI SEM USAR O SELF.
+        -- O "Components.Theme" garante que não vai crachar.
         for i, itemNome in ipairs(itemsToRender) do
-            -- AQUI ESTÁ A CORREÇÃO: Chama o Molde que criámos acima (Fim dos botões com erro de ZIndex 1!)
-            local itemBtn = Components:CriarItemDropdown(itemNome, i%2==0, scroll, cardZBase + 12)
+            local itemBtn = Instance.new("TextButton", scroll)
+            itemBtn.Size = UDim2.new(1, 0, 0, 30)
+            itemBtn.BackgroundColor3 = (i%2==0) and Components.Theme.PanelBG or Components.Theme.CardBG
+            itemBtn.BorderSizePixel = 0
+            itemBtn.Text = "   " .. itemNome
+            itemBtn.TextColor3 = Components.Theme.TextWhite
+            itemBtn.Font = Enum.Font.SourceSans
+            itemBtn.TextSize = 13
+            itemBtn.TextXAlignment = Enum.TextXAlignment.Left
+            itemBtn.ZIndex = cardZBase + 12
             
             table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
             

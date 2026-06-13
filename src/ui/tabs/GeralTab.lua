@@ -15,7 +15,11 @@ function GeralTab:Construir(paginaPai)
     end)
     local DropdownBlocos = Componentes:CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, zMiner, false)
     Componentes:CriarBotaoEstilizado("🔄 Carregar Mochila", cMiner, zMiner, function() 
-        if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end 
+        if Bot.Modules.Manager then 
+            -- AQUI É A CHAMADA CORRETA PARA BLOCOS DA SUA MOCHILA
+            local blocos = Bot.Modules.Manager:GetInventoryTools("Block")
+            DropdownBlocos:Refresh(blocos) 
+        end 
     end)
     Componentes:CriarBotaoEstilizado("🔨 Preencher Área do Seletor", cMiner, zMiner, function() 
         if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end 
@@ -60,7 +64,6 @@ function GeralTab:Construir(paginaPai)
         end
     end
 
-    -- Usando e Concatenando o Componente
     local btnSavePlotMining = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNomeM, zSelAzul, function()
         local cubo = State.ScannerGeral and State.ScannerGeral.AncoraPart
         if inputPlotMining.Text ~= "" and cubo then
