@@ -26,9 +26,21 @@ function Manager:GetInventoryTools(filtroTipo)
             if filtroTipo == "Block" and (item.Name:match("Block") or item:FindFirstChild("block-meta")) then
                 table.insert(toolsEncontradas, item.Name)
                 itensProcessados[item.Name] = true
-            elseif filtroTipo == "Seed" and (item.Name:lower():match("seed") or item:FindFirstChild("cropSeed")) then
-                table.insert(toolsEncontradas, item.Name)
-                itensProcessados[item.Name] = true
+            elseif filtroTipo == "Seed" then
+                -- PROCURA PELO NOME OU PELO SCRIPT INTERNO "SEED"
+                local isSeed = item.Name:lower():match("seed") or item:FindFirstChild("cropSeed")
+                if not isSeed then
+                    for _, child in ipairs(item:GetChildren()) do
+                        if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                            isSeed = true break
+                        end
+                    end
+                end
+                
+                if isSeed then
+                    table.insert(toolsEncontradas, item.Name)
+                    itensProcessados[item.Name] = true
+                end
             end
         end
     end
@@ -42,7 +54,6 @@ function Manager:GetInventoryTools(filtroTipo)
     return #toolsEncontradas > 0 and toolsEncontradas or {"Nenhum item encontrado"}
 end
 
--- NOVA FUNÇÃO: Pega TODAS as sementes do jogo direto dos arquivos do desenvolvedor!
 function Manager:GetAllSeedsInGame()
     local allSeeds = {}
     local rsTools = ReplicatedStorage:FindFirstChild("Tools")
@@ -50,8 +61,17 @@ function Manager:GetAllSeedsInGame()
     if rsTools then
         for _, tool in ipairs(rsTools:GetChildren()) do
             if tool:IsA("Tool") or tool:IsA("Folder") then
-                -- Checa se o nome termina com "Seeds" ou se tem o script característico
-                if tool.Name:match("Seeds$") or tool.Name:match("seeds$") or tool:FindFirstChild("cropSeed") then
+                -- LÓGICA CORRIGIDA: LÊ OS ARQUIVOS PROFUNDOS DOS DEVS
+                local isSeed = tool.Name:lower():match("seed") or tool:FindFirstChild("cropSeed")
+                if not isSeed then
+                    for _, child in ipairs(tool:GetChildren()) do
+                        if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                            isSeed = true break
+                        end
+                    end
+                end
+                
+                if isSeed and not table.find(allSeeds, tool.Name) then
                     table.insert(allSeeds, tool.Name)
                 end
             end
@@ -59,7 +79,7 @@ function Manager:GetAllSeedsInGame()
     end
     
     table.sort(allSeeds)
-    return #allSeeds > 0 and allSeeds or {"WheatSeeds"} -- Fallback seguro
+    return #allSeeds > 0 and allSeeds or {"Nenhuma Semente Encontrada"}
 end
 
 function Manager:AtualizarStatus(mensagem)
@@ -67,7 +87,6 @@ function Manager:AtualizarStatus(mensagem)
     if UI and UI.SetStatusText then UI:SetStatusText(mensagem) end
 end
 
--- Mapeamento dos Remotes
 local network = ReplicatedStorage:WaitForChild("rbxts_include"):WaitForChild("node_modules"):WaitForChild("@rbxts"):WaitForChild("net"):WaitForChild("out"):WaitForChild("_NetManaged")
 Manager.HitRemote = network:WaitForChild("CLIENT_BLOCK_HIT_REQUEST")
 Manager.PlaceRemote = network:WaitForChild("CLIENT_BLOCK_PLACE_REQUEST")

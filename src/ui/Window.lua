@@ -635,8 +635,12 @@ local DropdownSementes = CriarDropdown("Sementes Pessoais", cSeed, State, "Semen
 local PriorizeDropdown = CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
 CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
     if Bot.Modules.Manager then 
+        -- LISTA 1: Apenas o que você tem na mochila!
+        local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+        DropdownSementes:Refresh(sementesPessoais)
+        
+        -- LISTA 2: O jogo inteiro!
         local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-        DropdownSementes:Refresh(sementesGerais)
         PriorizeDropdown:Refresh(sementesGerais)
     end
 end)
@@ -870,9 +874,12 @@ task.spawn(function()
     AtualizarListaSavesFazenda()
     AtualizarListaSavesMining()
     if Bot.Modules.Manager then
-        local sementesGlobais = Bot.Modules.Manager:GetAllSeedsInGame()
-        DropdownSementes:Refresh(sementesGlobais)
-        PriorizeDropdown:Refresh(sementesGlobais)
+        local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+        local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+        
+        -- Preenche os Dropdowns separados e da maneira certa!
+        DropdownSementes:Refresh(sementesPessoais)
+        PriorizeDropdown:Refresh(sementesGerais)
     end
 end)
 

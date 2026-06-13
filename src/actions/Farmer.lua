@@ -14,19 +14,22 @@ local function IrParaAlvo(alvoPos)
     if not hrp then return end
 
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 15 then 
+    if dist > 5 then -- Só tweema se o centro do Cluster estiver longo
         hrp.Anchored = true
         local speed = State.FarmSettings.TweenSpeed or 20
         local tempo = dist / speed
         
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
-        local hoverCFrame = CFrame.new(hoverPos, alvoPos)
+        -- CORREÇÃO CRÍTICA DO TWEEN: Removemos o "LookAt". O personagem não deita mais de cara pro chão!
+        local hoverCFrame = CFrame.new(hoverPos)
         
         local tween = game:GetService("TweenService"):Create(
             hrp, 
             TweenInfo.new(tempo, Enum.EasingStyle.Linear), 
             {CFrame = hoverCFrame}
         )
+        
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("✈️ Deslizando para próximo Setor...") end
         
         tween:Play()
         while tween.PlaybackState == Enum.PlaybackState.Playing and State.AutoFarmingCrops do
@@ -41,8 +44,6 @@ function Farmer:ArarTerra()
     local Manager = Bot.Modules.Manager
     local Scanner = State.ScannerFazenda
     if not Scanner or not Scanner.AncoraPart then return end
-    if Manager then Manager:AtualizarStatus("Arando a terra...") end
-
     local bounds = workspace:GetPartBoundsInBox(Scanner.AncoraPart.CFrame, Scanner.AncoraPart.Size)
     task.spawn(function()
         for _, p in ipairs(bounds) do
@@ -55,7 +56,6 @@ function Farmer:ArarTerra()
                 end
             end
         end
-        if Manager then Manager:AtualizarStatus("Área arada!") end
     end)
 end
 
@@ -75,12 +75,10 @@ function Farmer:AlternarAutoFazenda(valor)
 
         local Scanner = State.ScannerFazenda
         if not Scanner or not Scanner.AncoraPart then 
-            if Manager then Manager:AtualizarStatus("Crie o seletor da fazenda primeiro!") end
             State.AutoFarmingCrops = false
             return 
         end
 
-        if Manager then Manager:AtualizarStatus("Auto-Fazenda Ativa...") end
         task.spawn(function()
             while State.AutoFarmingCrops do
                 if not Scanner.AncoraPart then break end
@@ -139,46 +137,19 @@ function Farmer:AlternarAutoFazenda(valor)
                     end
                 end
 
+                -- ====== O ALGORITMO "CLUSTER" ======
                 local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
+                
+                local setores = {}
+                local step = 15 -- 5 Blocos (O raio de alcance de 15 studs!)
 
-                -- 1. CRIAÇÃO DOS PONTOS MATEMATICAMENTE PERFEITOS (ADEUS ZEBRA)
-                local pontosPendentes = {}
+                -- Mapeia cada bloco da plantação para um Setor (Cluster)
                 for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
                     for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
                         for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
-                            table.insert(pontosPendentes, Vector3.new(x, y, z))
-                        end
-                    end
-                end
-
-                -- 2. ALGORITMO DE CLUSTER (Limpa por área e voa para a próxima)
-                local timeoutSegurança = 0
-                while #pontosPendentes > 0 and State.AutoFarmingCrops do
-                    timeoutSegurança = timeoutSegurança + 1
-                    if timeoutSegurança > 2000 then break end
-
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    local posAtual = hrp and hrp.Position or Scanner.AncoraPart.Position
-
-                    -- ORDENA PARA ACHAR O ALVO MAIS PRÓXIMO
-                    table.sort(pontosPendentes, function(a, b)
-                        return (posAtual - a).Magnitude < (posAtual - b).Magnitude
-                    end)
-
-                    local centroAtual = pontosPendentes[1]
-                    IrParaAlvo(centroAtual) -- VOA PARA O NOVO CLUSTER
-
-                    local proximaFila = {}
-                    -- PROCESSA TUDO QUE ESTIVER AO ALCANCE NESTE CLUSTER
-                    for _, posPlanta in ipairs(pontosPendentes) do
-                        if not State.AutoFarmingCrops then break end
-
-                        local hrpAgora = char and char:FindFirstChild("HumanoidRootPart")
-                        local distReal = hrpAgora and (hrpAgora.Position - posPlanta).Magnitude or 999
-
-                        -- SE ESTIVER DENTRO DE 15 STUDS (5 BLOCOS), ELE AGE!
-                        if distReal <= 15 then 
+                            
+                            local posPlanta = Vector3.new(x, y, z)
                             local posSolo = posPlanta - Vector3.new(0, Config.BLOCK_SIZE, 0)
                             
                             local keyPlanta = string.format("%.1f_%.1f_%.1f", posPlanta.X, posPlanta.Y, posPlanta.Z)
@@ -187,62 +158,97 @@ function Farmer:AlternarAutoFazenda(valor)
                             local plantaObj = cachePlantas[keyPlanta]
                             local blocoSolo = cacheSolos[keySolo]
 
-                            if plantaObj then
-                                local isMadura = plantaObj:FindFirstChild("Harvestable", true)
-                                if isMadura then
-                                    local payload = {
-                                        dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
-                                        player = LocalPlayer,
-                                        model = plantaObj
-                                    }
-                                    pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
-                                    task.wait(State.FarmSettings.HarvestDelay or 0.1)
-                                end
-                            elseif not blocoSolo and State.FarmSettings.PlaceGrass then
-                                local blockGrass = LocalPlayer.Backpack:FindFirstChild("grass") or (char and char:FindFirstChild("grass"))
-                                if blockGrass then
-                                    local payload = {
-                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                                        cframe = CFrame.new(posSolo),
-                                        blockType = blockGrass.Name,
-                                        upperBlock = false
-                                    }
-                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                                    task.wait(0.15)
-                                end
+                            -- Descobre se ESSE bloco precisa de ação
+                            local temTrabalho = false
+                            if plantaObj and plantaObj:FindFirstChild("Harvestable", true) then temTrabalho = true
+                            elseif not blocoSolo and State.FarmSettings.PlaceGrass then temTrabalho = true
                             elseif blocoSolo then
                                 local nSolo = blocoSolo.Name:lower()
-                                local terraBruta = nSolo:find("grass") or nSolo:find("dirt")
-                                local terraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
-                                
-                                if terraBruta and State.FarmSettings.PlowGrass then
-                                    pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
-                                    task.wait(0.1)
-                                    terraArada = true 
-                                end
-                                
-                                if terraArada and State.FarmSettings.AutoReplace and toolEmUso then
-                                    local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
-                                    local targetCFrame = CFrame.new(posPlanta)
-                                    local payload = {
-                                        uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
-                                        cframe = targetCFrame,
-                                        blockType = blockTypeReal,
-                                        upperBlock = false
-                                    }
-                                    pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
-                                    task.wait(State.FarmSettings.PlantDelay or 0.15)
-                                end
+                                if (nSolo:find("grass") or nSolo:find("dirt")) and State.FarmSettings.PlowGrass then temTrabalho = true
+                                elseif (nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")) and State.FarmSettings.AutoReplace and toolEmUso then temTrabalho = true end
                             end
-                        else
-                            -- Se estiver longe, guarda na fila para o próximo voo
-                            table.insert(proximaFila, posPlanta)
+
+                            -- Se tiver trabalho, adiciona a lista do Setor
+                            if temTrabalho then
+                                local sx = math.floor((x - minCoord.X) / step) * step + minCoord.X + step/2
+                                local sz = math.floor((z - minCoord.Z) / step) * step + minCoord.Z + step/2
+                                local sKey = string.format("%.1f_%.1f", sx, sz)
+                                
+                                if not setores[sKey] then
+                                    setores[sKey] = { centro = Vector3.new(sx, y, sz), tarefas = {} }
+                                end
+                                table.insert(setores[sKey].tarefas, {
+                                    pPlanta = posPlanta, pSolo = posSolo,
+                                    objP = plantaObj, objS = blocoSolo
+                                })
+                            end
                         end
                     end
-                    -- Atualiza a lista apenas com os blocos distantes que sobraram
-                    pontosPendentes = proximaFila
-                    task.wait(0.05)
                 end
+
+                local listaSetores = {}
+                for _, s in pairs(setores) do table.insert(listaSetores, s) end
+
+                -- O BOT VOA PARA O SETOR MAIS PERTO DELE ATÉ LIMPAR TUDO
+                while #listaSetores > 0 and State.AutoFarmingCrops do
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local posAtual = hrp and hrp.Position or Scanner.AncoraPart.Position
+
+                    table.sort(listaSetores, function(a, b)
+                        return (posAtual - a.centro).Magnitude < (posAtual - b.centro).Magnitude
+                    end)
+
+                    local setorAtual = table.remove(listaSetores, 1)
+
+                    if State.FarmSettings.TweenToTarget then
+                        IrParaAlvo(setorAtual.centro)
+                    end
+
+                    if Manager then Manager:AtualizarStatus("A Colher Setor: " .. #setorAtual.tarefas .. " plantas") end
+
+                    for _, dados in ipairs(setorAtual.tarefas) do
+                        if not State.AutoFarmingCrops then break end
+                        
+                        -- Segurança: Se o player desligou o Voo, só processa se estiver perto!
+                        if not State.FarmSettings.TweenToTarget then
+                            local pAtual = (char and char:FindFirstChild("HumanoidRootPart")) and char.HumanoidRootPart.Position or posAtual
+                            if (pAtual - dados.pPlanta).Magnitude > 18 then continue end
+                        end
+
+                        if dados.objP then
+                            local payload = { dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm", player = LocalPlayer, model = dados.objP }
+                            pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
+                            task.wait(State.FarmSettings.HarvestDelay or 0.1)
+                        
+                        elseif not dados.objS and State.FarmSettings.PlaceGrass then
+                            local blockGrass = LocalPlayer.Backpack:FindFirstChild("grass") or (char and char:FindFirstChild("grass"))
+                            if blockGrass then
+                                local payload = { uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU", cframe = CFrame.new(dados.pSolo), blockType = blockGrass.Name, upperBlock = false }
+                                pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                task.wait(0.15)
+                            end
+                            
+                        elseif dados.objS then
+                            local nSolo = dados.objS.Name:lower()
+                            local isTerraBruta = nSolo:find("grass") or nSolo:find("dirt")
+                            local isTerraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
+                            
+                            if isTerraBruta and State.FarmSettings.PlowGrass then
+                                pcall(function() Manager.PlowRemote:InvokeServer({ block = dados.objS }) end)
+                                task.wait(0.1)
+                                isTerraArada = true 
+                            end
+                            
+                            if isTerraArada and State.FarmSettings.AutoReplace and toolEmUso then
+                                local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
+                                local payload = { uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU", cframe = CFrame.new(dados.pPlanta), blockType = blockTypeReal, upperBlock = false }
+                                pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
+                                task.wait(State.FarmSettings.PlantDelay or 0.15)
+                            end
+                        end
+                    end
+                end
+                
                 task.wait(1)
             end
             

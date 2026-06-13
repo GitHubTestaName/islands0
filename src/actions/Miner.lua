@@ -19,13 +19,16 @@ local function IrParaAlvo(alvoPos)
         local tempo = dist / speed
         
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
-        local hoverCFrame = CFrame.new(hoverPos, alvoPos)
+        -- Correção Crítica: CFrame Flat sem rotação absurda
+        local hoverCFrame = CFrame.new(hoverPos)
         
         local tween = game:GetService("TweenService"):Create(
             hrp, 
             TweenInfo.new(tempo, Enum.EasingStyle.Linear), 
             {CFrame = hoverCFrame}
         )
+        
+        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("✈️ Voando para pedra...") end
         
         tween:Play()
         while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do
@@ -48,7 +51,6 @@ function Miner:ExecutarLoop()
             continue
         end
 
-        -- ORDENAÇÃO DINÂMICA: Sempre ataca as pedras mais próximas do boneco
         local char = LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
@@ -72,6 +74,12 @@ function Miner:ExecutarLoop()
             
             while bloco and bloco:IsDescendantOf(workspace) do
                 if not State.Minerando then break end
+                
+                -- Se não usa tween, e a pedra está muito longe do boneco agora, pula a pedra
+                if not State.MiningSettings.TweenToTarget then
+                    local pAtual = (char and char:FindFirstChild("HumanoidRootPart")) and char.HumanoidRootPart.Position or basePos
+                    if (pAtual - basePos).Magnitude > 18 then break end
+                end
                 
                 local hpAtual = healthObj and healthObj.Value or 0
                 if healthObj and hpAtual <= 0 then 
