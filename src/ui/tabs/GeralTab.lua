@@ -46,17 +46,6 @@ function GeralTab:Construir(paginaPai)
     
     local inputPlotMining = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNomeM, zSelAzul)
     
-    local btnSavePlotMining = Instance.new("TextButton", rSaveNomeM)
-    btnSavePlotMining.Size = UDim2.new(0.35, 0, 1, 0)
-    btnSavePlotMining.Position = UDim2.new(0.65, 5, 0, 0)
-    btnSavePlotMining.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
-    btnSavePlotMining.Text = "💾 Salvar"
-    btnSavePlotMining.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btnSavePlotMining.Font = Enum.Font.SourceSansBold
-    btnSavePlotMining.TextSize = 13
-    btnSavePlotMining.ZIndex = zSelAzul + 3
-    Instance.new("UICorner", btnSavePlotMining).CornerRadius = UDim.new(0, 4)
-
     local plotDropdownMining = Componentes:CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul - 5, false)
 
     local function AtualizarListaSavesMining()
@@ -71,7 +60,8 @@ function GeralTab:Construir(paginaPai)
         end
     end
 
-    btnSavePlotMining.MouseButton1Click:Connect(function()
+    -- Usando e Concatenando o Componente
+    local btnSavePlotMining = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNomeM, zSelAzul, function()
         local cubo = State.ScannerGeral and State.ScannerGeral.AncoraPart
         if inputPlotMining.Text ~= "" and cubo then
             Bot.Modules.PlotManager:SalvarPlot("Mining_" .. inputPlotMining.Text, cubo.Position, cubo.Size)
@@ -79,6 +69,10 @@ function GeralTab:Construir(paginaPai)
             inputPlotMining.Text = ""
         end
     end)
+    
+    btnSavePlotMining.Size = UDim2.new(0.35, 0, 1, 0)
+    btnSavePlotMining.Position = UDim2.new(0.65, 5, 0, 0)
+    btnSavePlotMining.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
 
     local rAcoesM = Componentes:CriarGridTripla(cSelAzul, zSelAzul)
     Componentes:CriarBotaoPequeno("Load", Color3.fromRGB(40, 150, 80), rAcoesM, zSelAzul, function()

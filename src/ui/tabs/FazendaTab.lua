@@ -25,10 +25,12 @@ function FazendaTab:Construir(paginaPai)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     Componentes:CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
         if Bot.Modules.Manager then 
-            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-            DropdownSementes:Refresh(sementesPessoais)
-            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-            PriorizeDropdown:Refresh(sementesGerais)
+            pcall(function()
+                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+                DropdownSementes:Refresh(sementesPessoais)
+                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+                PriorizeDropdown:Refresh(sementesGerais)
+            end)
         end
     end)
 
@@ -60,32 +62,25 @@ function FazendaTab:Construir(paginaPai)
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNome, zSave)
     
-    local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
-    btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
-    btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
-    btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
-    btnSavePlotFazenda.Text = "💾 Salvar"
-    btnSavePlotFazenda.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btnSavePlotFazenda.Font = Enum.Font.SourceSansBold
-    btnSavePlotFazenda.TextSize = 13
-    btnSavePlotFazenda.ZIndex = zSave + 3
-    Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
-
     local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5, false)
 
     local function AtualizarListaSavesFazenda()
         if Bot.Modules.PlotManager and plotDropdownFazenda then
-            local plots = Bot.Modules.PlotManager:ObterTodos()
-            local lista = {}
-            for nome, _ in pairs(plots) do 
-                if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
-            end
-            if #lista == 0 then lista = {"Nenhum"} end
-            plotDropdownFazenda:Refresh(lista)
+            pcall(function()
+                local plots = Bot.Modules.PlotManager:ObterTodos()
+                local lista = {}
+                for nome, _ in pairs(plots) do 
+                    if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
+                end
+                if #lista == 0 then lista = {"Nenhum"} end
+                plotDropdownFazenda:Refresh(lista)
+            end)
         end
     end
 
-    btnSavePlotFazenda.MouseButton1Click:Connect(function()
+    -- EXCELENTE EXEMPLO DE CONCATENAÇÃO DE ESTILOS!
+    -- Criamos o botão com a nossa fábrica, e depois alteramos apenas o que nos interessa!
+    local btnSavePlotFazenda = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNome, zSave, function()
         local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
         if inputPlotFazenda.Text ~= "" and cubo then
             Bot.Modules.PlotManager:SalvarPlot("Farming_" .. inputPlotFazenda.Text, cubo.Position, cubo.Size)
@@ -93,6 +88,11 @@ function FazendaTab:Construir(paginaPai)
             inputPlotFazenda.Text = ""
         end
     end)
+    
+    -- Aqui eu sobrescrevo (concateno) as propriedades visuais
+    btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
+    btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
+    btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
 
     local rAcoesF = Componentes:CriarGridTripla(cSave, zSave)
     Componentes:CriarBotaoPequeno("Load", Color3.fromRGB(40, 150, 80), rAcoesF, zSave, function()
@@ -121,12 +121,14 @@ function FazendaTab:Construir(paginaPai)
 
     task.spawn(function()
         task.wait(1)
-        AtualizarListaSavesFazenda()
+        pcall(function() AtualizarListaSavesFazenda() end)
         if Bot.Modules.Manager then
-            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-            DropdownSementes:Refresh(sementesPessoais)
-            PriorizeDropdown:Refresh(sementesGerais)
+            pcall(function()
+                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+                DropdownSementes:Refresh(sementesPessoais)
+                PriorizeDropdown:Refresh(sementesGerais)
+            end)
         end
     end)
 end
