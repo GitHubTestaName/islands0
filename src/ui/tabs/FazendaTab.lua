@@ -22,7 +22,7 @@ function FazendaTab:Construir(paginaPai)
     -- SEED
     local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
     
-    -- AQUI ESTÁ A MUDANÇA DA PESQUISA: O último parâmetro é 'true'!
+    -- OS DOIS DROPDOWNS COM PESQUISA ATIVADA!
     local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
@@ -31,6 +31,7 @@ function FazendaTab:Construir(paginaPai)
             pcall(function()
                 local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
                 DropdownSementes:Refresh(sementesPessoais)
+                
                 local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
                 PriorizeDropdown:Refresh(sementesGerais)
             end)
@@ -46,14 +47,19 @@ function FazendaTab:Construir(paginaPai)
     Componentes:CriarCheckboxMetade("Tween/Voo", rDelay2, State.FarmSettings, "TweenToTarget", zDelay)
     Componentes:CriarInputMetade("Vel. Voo:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
     local rDelay3 = Componentes:CriarGridDupla(cDelay, zDelay)
+    
     Componentes:CriarCheckboxMetade("Esconder Nums", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
-        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
+        if State.ScannerFazenda and type(State.ScannerFazenda.EscanearArea) == "function" then 
+            State.ScannerFazenda:EscanearArea() 
+        end
     end)
 
-    -- SELECTOR & SAVES (Restaurado e Completo!)
+    -- SELECTOR & SAVES
     local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai)
     Componentes:CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Verde", cSave, zSave, function() 
-        if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
+        if State.ScannerFazenda and type(State.ScannerFazenda.CriarSeletorFrontal) == "function" then 
+            State.ScannerFazenda:CriarSeletorFrontal() 
+        end 
     end)
     Componentes:CriarControlesEspaciais(cSave, zSave, "ScannerFazenda")
 
@@ -65,7 +71,7 @@ function FazendaTab:Construir(paginaPai)
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNome, zSave)
     
-    local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5, false)
+    local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave, false)
 
     local function AtualizarListaSavesFazenda()
         if Bot.Modules.PlotManager and plotDropdownFazenda then
@@ -90,7 +96,6 @@ function FazendaTab:Construir(paginaPai)
         end
     end)
     
-    -- Concatenando o estilo do Botão de Save para ficar ao lado da caixa de texto
     btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
     btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
     btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
@@ -100,7 +105,9 @@ function FazendaTab:Construir(paginaPai)
         local sn = State.FarmSettings.CurrentSaveName
         if sn and sn ~= "Nenhum" then
             local p = Bot.Modules.PlotManager:ObterTodos()["Farming_" .. sn]
-            if p and State.ScannerFazenda then State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) end
+            if p and State.ScannerFazenda and type(State.ScannerFazenda.CarregarPlot) == "function" then 
+                State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) 
+            end
         end
     end)
     Componentes:CriarBotaoPequeno("Rewrite", Color3.fromRGB(200, 120, 20), rAcoesF, zSave, function()

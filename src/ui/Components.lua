@@ -14,7 +14,7 @@ Components.Theme = {
     TextDimmed = Color3.fromRGB(200, 200, 200),
     InputBG = Color3.fromRGB(20, 20, 20),
     PanelBG = Color3.fromRGB(45, 45, 45),
-    DropdownBG = Color3.fromRGB(25, 25, 25) -- Cor especial para o fundo das listas
+    DropdownBG = Color3.fromRGB(25, 25, 25)
 }
 
 Components.layoutOrderGlobal = 0
@@ -151,6 +151,7 @@ function Components:CriarBotaoPequeno(texto, cor, parentRow, cardZBase, callback
 end
 
 function Components:CriarToggleLargo(texto, parent, stateTable, stateKey, cardZBase, callback)
+    stateTable = stateTable or {} -- BLINDAGEM
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.95, 0, 0, 34)
     local isAtivo = stateTable[stateKey]
@@ -176,6 +177,7 @@ function Components:CriarToggleLargo(texto, parent, stateTable, stateKey, cardZB
 end
 
 function Components:CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZBase, callback)
+    stateTable = stateTable or {} -- BLINDAGEM: Nunca mais vai crachar!
     local frame = Instance.new("Frame", parentRow)
     frame.Size = UDim2.new(0.5, -2.5, 1, 0)
     frame.BackgroundColor3 = self.Theme.PanelBG
@@ -214,6 +216,7 @@ function Components:CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, 
 end
 
 function Components:CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefault, cardZBase)
+    stateTable = stateTable or {} -- BLINDAGEM
     local frame = Instance.new("Frame", parentRow)
     frame.Size = UDim2.new(0.5, -2.5, 1, 0)
     frame.BackgroundColor3 = self.Theme.PanelBG
@@ -268,7 +271,7 @@ end
 function Components:CriarItemDropdown(texto, parent, zIndexBase)
     local itemBtn = Instance.new("TextButton", parent)
     itemBtn.Size = UDim2.new(1, 0, 0, 32)
-    itemBtn.BackgroundColor3 = Components.Theme.PanelBG -- Fundo consistente (Sem listras)
+    itemBtn.BackgroundColor3 = Components.Theme.PanelBG 
     itemBtn.BorderSizePixel = 0
     itemBtn.Text = texto
     itemBtn.TextColor3 = Components.Theme.TextWhite
@@ -276,12 +279,12 @@ function Components:CriarItemDropdown(texto, parent, zIndexBase)
     itemBtn.TextSize = 13
     itemBtn.TextXAlignment = Enum.TextXAlignment.Left
     itemBtn.ZIndex = zIndexBase
-    itemBtn.AutoButtonColor = true -- Dá aquele brilhinho nativo ao clicar
+    itemBtn.AutoButtonColor = true 
 
-    -- As bordas redondinhas para cada item
+    -- As bordas redondinhas para cada item da lista!
     Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 6)
 
-    -- O espaçamento interno (Padding) para a palavra não colar na borda esquerda!
+    -- O Padding para o texto não ficar colado à parede!
     local pad = Instance.new("UIPadding", itemBtn)
     pad.PaddingLeft = UDim.new(0, 10)
     pad.PaddingRight = UDim.new(0, 10)
@@ -290,6 +293,7 @@ function Components:CriarItemDropdown(texto, parent, zIndexBase)
 end
 
 function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
+    stateTable = stateTable or {} -- BLINDAGEM
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
@@ -328,7 +332,6 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     dropdownContainer.Active = true 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 6)
 
-    -- Borda de destaque para a caixa do dropdown não se misturar com o fundo
     local dropStroke = Instance.new("UIStroke", dropdownContainer)
     dropStroke.Color = Color3.fromRGB(80, 80, 80)
     dropStroke.Thickness = 1
@@ -350,11 +353,8 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         searchBox.ZIndex = cardZBase + 11
         Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
         
-        -- Padding para o texto de pesquisa não colar na borda
         local sPad = Instance.new("UIPadding", searchBox)
         sPad.PaddingLeft = UDim.new(0, 10)
-        
-        -- Empurra a lista de itens para baixo para dar espaço à barra de pesquisa
         yOffsetScroll = 40 
     end
     
@@ -368,13 +368,12 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     scroll.ScrollBarImageColor3 = self.Theme.AccentBlue
     scroll.Active = true 
 
-    -- O Layout com o espaçamento (Gap) entre os itens
+    -- Suavidade: Gaps entre os itens da lista
     local listLayout = Instance.new("UIListLayout", scroll)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Padding = UDim.new(0, 5) -- Esse é o espaço "suave" entre cada botão
+    listLayout.Padding = UDim.new(0, 5) 
     listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     
-    -- O Padding geral da lista (para os botões não baterem na barra de scroll)
     local scrollPad = Instance.new("UIPadding", scroll)
     scrollPad.PaddingTop = UDim.new(0, 5)
     scrollPad.PaddingBottom = UDim.new(0, 5)
@@ -424,7 +423,6 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         end
         
         for _, itemNome in ipairs(itemsToRender) do
-            -- Chama o novo molde SUPER SUAVE e BONITINHO sem a zebra (isPar)
             local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 12)
             
             table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
@@ -476,8 +474,6 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                     obj.btn.Visible = false
                 end
             end
-            
-            -- A Matemática perfeita: Tamanho do item (32) + Gap (5) + Padding (10)
             local alturaNecessaria = (count * 32) + (math.max(0, count - 1) * 5) + 10
             scroll.CanvasSize = UDim2.new(0, 0, 0, alturaNecessaria)
         end
@@ -491,7 +487,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     return dropdownObj
 end
 
--- [... MANTÉM A FUNÇÃO CriarControlesEspaciais EXATAMENTE COMO ESTAVA NO FIM DO FICHEIRO ...]
+-- ================= ESPACIAL =================
 function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     local Bot = _G.IslandsBot
     local State = Bot.State
