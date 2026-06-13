@@ -16,7 +16,6 @@ Components.Theme = {
     PanelBG = Color3.fromRGB(45, 45, 45)
 }
 
--- Controle Global de Z-Index e Ordem
 Components.layoutOrderGlobal = 0
 Components.zIndexGlobal = 1000 
 Components.innerOrderGlobal = 0
@@ -298,6 +297,9 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     dropdownContainer.BorderSizePixel = 0
     dropdownContainer.Visible = false
     dropdownContainer.ZIndex = cardZBase + 10 
+    
+    -- SOLUÇÃO DE CLICK-THROUGH: O Frame agora absorve os cliques!
+    dropdownContainer.Active = true 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 4)
     
     local searchBox = nil
@@ -324,6 +326,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     scroll.BorderSizePixel = 0
     scroll.ZIndex = cardZBase + 11
     scroll.ScrollBarThickness = 5
+    scroll.Active = true -- Absorve o scroll do rato
     Instance.new("UIListLayout", scroll).SortOrder = Enum.SortOrder.LayoutOrder
     
     mainBtn.MouseButton1Click:Connect(function() 
@@ -337,19 +340,30 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     local todosBotoes = {}
     
     function dropdownObj:Refresh(listaItems)
+        -- Tratamento de segurança: se vier nulo, cria uma lista vazia
+        if type(listaItems) ~= "table" then listaItems = {} end
+        
         for _, old in ipairs(scroll:GetChildren()) do if old:IsA("TextButton") then old:Destroy() end end
         todosBotoes = {}
         
         local itemsToRender = {}
+        
+        -- INJEÇÃO FORÇADA DO BOTÃO "ALL" SE FOR MULTI-SELEÇÃO
         if isMulti then table.insert(itemsToRender, "All") end
+        
         for _, item in ipairs(listaItems) do table.insert(itemsToRender, item) end
         
+        -- Se não tiver nada na lista além do "All" (ou nada em listas normais), avisa visualmente
+        if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then
+            table.insert(itemsToRender, "Nenhum Encontrado")
+        end
+
         local function atualizarMainText()
             if isMulti then
                 if stateTable[stateKey]["All"] then mainBtn.Text = "  " .. labelTexto .. ": All"
                 else
                     local count = 0
-                    for k, v in pairs(stateTable[stateKey]) do if v then count = count + 1 end end
+                    for k, v in pairs(stateTable[stateKey]) do if v and k ~= "Nenhum Encontrado" then count = count + 1 end end
                     mainBtn.Text = "  " .. labelTexto .. ": " .. count .. " itens sel."
                 end
             else
@@ -385,6 +399,9 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
             applyVisual()
             
             itemBtn.MouseButton1Click:Connect(function()
+                -- Se for o texto de erro, não faz nada
+                if itemNome == "Nenhum Encontrado" then return end
+
                 if isMulti then
                     if itemNome == "All" then stateTable[stateKey] = {["All"] = true}
                     else
@@ -489,4 +506,4 @@ function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     CriarAcaoVert("🔽 Descer Seletor", "Descer")
 end
 
-return Components
+return Componentste

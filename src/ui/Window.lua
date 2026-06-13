@@ -12,6 +12,8 @@ if CoreGui:FindFirstChild("IslandsCustomUI") then CoreGui.IslandsCustomUI:Destro
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "IslandsCustomUI"
 ScreenGui.ResetOnSpawn = false
+-- A SOLUÇÃO DO Z-INDEX: Obriga o Roblox a respeitar as camadas globalmente!
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global 
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame", ScreenGui)
@@ -208,7 +210,6 @@ BotoesAba["fazenda"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["fazenda"].UIStroke.Transparency = 0
 Paginas["fazenda"].Visible = true
 
--- INJEÇÃO PROFISSIONAL: Delega o desenho de cada tela para o seu respetivo ficheiro!
 task.spawn(function()
     if Bot.Modules.GeralTab then Bot.Modules.GeralTab:Construir(pageGeral) end
     if Bot.Modules.FazendaTab then Bot.Modules.FazendaTab:Construir(pageFazenda) end

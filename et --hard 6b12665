@@ -1,0 +1,28 @@
+[33ma91f9e5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m correçao select
+[33ma33b435[m correçao da correçao
+[33mb5e017e[m correçao
+[33m6b12665[m REMODULARIZAÇÃO (IMPORTANTE)
+[33m065c6a6[m a
+[33mf507870[m a
+[33me396473[m a
+[33m881f7a4[m corrijindo z index
+[33m0c23d73[m corrijindo
+[33m265c551[m adicionando o Fly para o mine
+[33m8a0d9cc[m adicionando tween etc.
+[33m187650f[m Tentando Corrijir ui
+[33me9e0413[m mermao
+[33m4e122f0[m vendo ui
+[33ma3f2794[m melhorando ui
+[33m9f95db2[m corrijindo grid do load save
+[33mb3e8bf6[m corrijindo erros
+[33m3f44727[m corrijindo a interface
+[33m8107bc8[m Atualizando interface e adicionando o select proprio de cada farm (no momento acho que é só para "Farming")
+[33m83cfc30[m tentando adicionar o plotmanager (Selector) á cada tipo de farm
+[33m1698e99[m Adicionando "Any/All" Seeds option além de multi select para sementes
+[33m7b34423[m mexendo com interface
+[33m68638ae[m modificando a interface visualmente
+[33m719107b[m Adicionando LOADER inicial do script + alterando algumas coisas.
+[33m28e456a[m Corrijindo o local de açao de plantaçao no selecto
+[33mf0dc145[m tentando corrijir a seed
+[33mab7437b[m "Trunk (da arvore)" e "Top (da grass)" identificaçao corrijida, agora tentnado corrijir o problema de plantar sementes em SOIL block
+[33m1864614[m tentando corrijir o "ignore Top (da grass) e "ignore trunk (da arvore)"
