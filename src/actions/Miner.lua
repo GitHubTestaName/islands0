@@ -1,11 +1,43 @@
 -- src/actions/Miner.lua
+local Players = game:GetService("Players")
 local Miner = {}
 local Bot = _G.IslandsBot
 local State = Bot.State
+local LocalPlayer = Players.LocalPlayer
+
+local function IrParaAlvo(alvoPos)
+    if not State.MiningSettings.TweenToTarget then return end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local dist = (hrp.Position - alvoPos).Magnitude
+    if dist > 12 then
+        hrp.Anchored = true
+        local speed = State.MiningSettings.TweenSpeed or 20
+        local tempo = dist / speed
+        
+        local hoverPos = alvoPos + Vector3.new(0, 6, 0)
+        local hoverCFrame = CFrame.new(hoverPos, alvoPos)
+        
+        local tween = game:GetService("TweenService"):Create(
+            hrp, 
+            TweenInfo.new(tempo, Enum.EasingStyle.Linear), 
+            {CFrame = hoverCFrame}
+        )
+        
+        tween:Play()
+        while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do
+            task.wait(0.05)
+        end
+        if not State.Minerando then tween:Cancel() end
+    end
+end
 
 function Miner:ExecutarLoop()
     local Manager = Bot.Modules.Manager
-    local Scanner = State.ScannerGeral -- Usa exclusivamente o Seletor Azul
+    local Scanner = State.ScannerGeral
 
     while State.Minerando do
         if Scanner then Scanner:EscanearArea() end
@@ -35,18 +67,22 @@ function Miner:ExecutarLoop()
                     break 
                 end
                 
+                local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
+                IrParaAlvo(basePos) -- VOA ATÉ A PEDRA ANTES DE BATER!
+                
                 tentativas = tentativas + 1
                 if Manager then
                     Manager:AtualizarStatus(string.format("[%d/%d] %s | HP: %s | Hit: %d", i, #Scanner.ListaBlocos, dados.Nome, tostring(hpAtual), tentativas))
                 end
 
-                if tentativas > 200 then 
-                    if Manager then Manager:AtualizarStatus("Gargalo! Pulando " .. dados.Nome) end
+                -- A SOLUÇÃO DO FANTASMA: Se bater demais e o servidor negar, força um re-scan limpo!
+                if tentativas > 50 then 
+                    if Manager then Manager:AtualizarStatus("Gargalo! Recalculando pedras...") end
+                    Scanner:EscanearArea() 
                     task.wait(0.5)
                     break 
                 end
 
-                local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
                 local offsetX = math.random(-15, 15) / 100
                 local offsetZ = math.random(-15, 15) / 100
                 local hitPosition = basePos + Vector3.new(offsetX, 0, offsetZ)
@@ -67,21 +103,35 @@ function Miner:ExecutarLoop()
         end
         task.wait(0.2)
     end
+    
+    local charAtual = LocalPlayer.Character
+    if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
+        charAtual.HumanoidRootPart.Anchored = false
+    end
 end
 
 function Miner:Alternar(valor)
     local Manager = Bot.Modules.Manager
-    if not State.ScannerGeral or not State.ScannerGeral.AncoraPart then 
-        if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor geral primeiro!") end
-        return false
-    end
-    
     State.Minerando = valor
-    if State.Minerando then
+    
+    if valor then
+        if State.MiningSettings.AutoUseSelectedSave and State.MiningSettings.CurrentSaveName then
+            local PlotManager = Bot.Modules.PlotManager
+            local plots = PlotManager:ObterTodos()
+            local plot = plots["Mining_" .. State.MiningSettings.CurrentSaveName]
+            if plot and State.ScannerGeral then
+                State.ScannerGeral:CarregarPlot(Vector3.new(plot.PosX, plot.PosY, plot.PosZ), Vector3.new(plot.SizeX, plot.SizeY, plot.SizeZ))
+            end
+        end
+
+        if not State.ScannerGeral or not State.ScannerGeral.AncoraPart then 
+            if Manager then Manager:AtualizarStatus("ERRO: Crie o seletor azul primeiro!") end
+            State.Minerando = false
+            return false
+        end
+        
         State.Construindo = false
-        task.spawn(function()
-            Miner:ExecutarLoop()
-        end)
+        task.spawn(function() Miner:ExecutarLoop() end)
     else
         if Manager then Manager:AtualizarStatus("Ocioso") end
     end

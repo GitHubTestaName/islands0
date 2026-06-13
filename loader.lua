@@ -12,13 +12,16 @@ _G.IslandsBot = {
     State = {
         ScannerGeral = nil,
         ScannerFazenda = nil,
-        HideNumbers = false, 
         
+        MiningSettings = {
+            TweenToTarget = false, TweenSpeed = 20,
+            AutoUseSelectedSave = false, CurrentSaveName = "Nenhum"
+        },
         FarmSettings = {
             PlowGrass = false, PlaceGrass = false, AutoReplace = false,
             PrioritizePlant = "Nenhum", HarvestDelay = 0.1, PlantDelay = 0.15,
             AutoUseSelectedSave = false, CurrentSaveName = "Nenhum",
-            TweenToTarget = false, TweenSpeed = 20 -- NOVAS CONFIGURAÇÕES DE VOO
+            TweenToTarget = false, TweenSpeed = 20
         },
         
         AncoraPart = nil, Handles = nil, CaixaVisual = nil,
@@ -32,7 +35,6 @@ if CoreGui:FindFirstChild("IslandsLoadingUI") then CoreGui.IslandsLoadingUI:Dest
 
 local LoadGui = Instance.new("ScreenGui", CoreGui)
 LoadGui.Name = "IslandsLoadingUI"
-
 local LoadFrame = Instance.new("Frame", LoadGui)
 LoadFrame.Size = UDim2.new(0, 300, 0, 100)
 LoadFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
@@ -63,7 +65,6 @@ BarBG.Size = UDim2.new(0.8, 0, 0, 10)
 BarBG.Position = UDim2.new(0.1, 0, 0, 70)
 BarBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1, 0)
-
 local BarFill = Instance.new("Frame", BarBG)
 BarFill.Size = UDim2.new(0, 0, 1, 0)
 BarFill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)

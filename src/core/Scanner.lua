@@ -13,6 +13,7 @@ local LocalPlayer = Players.LocalPlayer
 function Scanner.new(corCubo)
     local self = setmetatable({}, Scanner)
     self.Cor = corCubo or Color3.fromRGB(0, 150, 255)
+    self.HideNumbers = false -- CADA SCANNER TEM O SEU!
     self.AncoraPart = nil
     self.Handles = nil
     self.CaixaVisual = nil
@@ -35,7 +36,7 @@ function Scanner:LimparAncora()
 end
 
 function Scanner:CriarNumeroVisual(posicao, numero)
-    if Bot.State.HideNumbers then return nil end
+    if self.HideNumbers then return nil end
     local part = Instance.new("Part")
     part.Size = Vector3.new(0.5, 0.5, 0.5)
     part.Position = posicao + Vector3.new(0, 1.5, 0)
@@ -188,11 +189,7 @@ function Scanner:MontarCuboVisuais(posExata, tamanho)
 end
 
 function Scanner:CriarSeletorFrontal()
-    -- LÓGICA DE TOGGLE: Se já existir, destrói e não cria nada!
-    if self.AncoraPart then
-        self:LimparAncora()
-        return
-    end
+    if self.AncoraPart then self:LimparAncora() return end
 
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end

@@ -26,15 +26,18 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 State.HideKey = Enum.KeyCode.V
 State.IsListeningForKey = false
 
+-- SISTEMA DA HOTKEY À PROVA DE BALAS
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed and not State.IsListeningForKey then return end
-    if State.IsListeningForKey and input.UserInputType == Enum.UserInputType.Keyboard then
-        State.HideKey = input.KeyCode
-        State.IsListeningForKey = false
-        if State.UpdateKeybindButton then State.UpdateKeybindButton() end
-        return
+    if State.IsListeningForKey then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            State.HideKey = input.KeyCode
+            State.IsListeningForKey = false
+            if State.UpdateKeybindButton then State.UpdateKeybindButton() end
+        end
+        return -- Bloqueia a ação nativa para capturar com segurança
     end
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == State.HideKey then
+    
+    if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == State.HideKey then
         if ScreenGui:FindFirstChild("MainFrame") then
             ScreenGui.MainFrame.Visible = not ScreenGui.MainFrame.Visible
         end
@@ -61,7 +64,6 @@ TopBar.InputBegan:Connect(function(input)
         input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragToggle = false end end)
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement and dragToggle then
         local delta = input.Position - dragStart
@@ -84,7 +86,6 @@ WindowResizeHandle.InputBegan:Connect(function(input)
         draggingWindow = true; winDragStartPos = input.Position; winStartSize = MainFrame.AbsoluteSize
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if draggingWindow and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - winDragStartPos
@@ -156,7 +157,9 @@ local function CriarAba(nome, id)
     pg.BorderSizePixel = 0
     pg.ScrollBarThickness = 5
     pg.Visible = false
-    pg.ClipsDescendants = false
+    
+    -- A SOLUÇÃO DO SCROLL: ClipsDescendants TRUE, com o Padding muito profundo para os Dropdowns caberem!
+    pg.ClipsDescendants = true
     
     local layout = Instance.new("UIListLayout", pg)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -169,10 +172,10 @@ local function CriarAba(nome, id)
     local padding = Instance.new("UIPadding", pg)
     padding.PaddingLeft = UDim.new(0, 10)
     padding.PaddingTop = UDim.new(0, 10)
-    padding.PaddingBottom = UDim.new(0, 180)
+    padding.PaddingBottom = UDim.new(0, 250) -- Espaço colossal invisível no final!
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 200)
+        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 250)
     end)
     
     Paginas[id], BotoesAba[id] = pg, btn
@@ -240,7 +243,6 @@ local function CriarCard(titulo, parent, zIndexCard)
     cLayout.Padding = UDim.new(0, 8)
     cLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     cLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
     local pad = Instance.new("UIPadding", content)
     pad.PaddingTop = UDim.new(0, 10)
     pad.PaddingBottom = UDim.new(0, 10)
@@ -249,7 +251,6 @@ local function CriarCard(titulo, parent, zIndexCard)
         content.Size = UDim2.new(1, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
         card.Size = UDim2.new(0, 240, 0, 31 + content.Size.Y.Offset)
     end)
-
     return content, card.ZIndex
 end
 
@@ -322,7 +323,6 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, zBase
     frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     frame.ZIndex = zBase + 1
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
-    
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(0, 22, 0, 22)
     btn.Position = UDim2.new(0, 5, 0.5, -11)
@@ -332,7 +332,6 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, zBase
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.ZIndex = zBase + 2
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-    
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(1, -35, 1, 0)
     label.Position = UDim2.new(0, 32, 0, 0)
@@ -343,7 +342,6 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, zBase
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = zBase + 2
-    
     btn.MouseButton1Click:Connect(function()
         stateTable[stateKey] = not stateTable[stateKey]
         local v = stateTable[stateKey]
@@ -359,7 +357,6 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     frame.ZIndex = zBase + 1
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
-    
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.5, 0, 1, 0)
     label.Position = UDim2.new(0, 8, 0, 0)
@@ -370,7 +367,6 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = zBase + 2
-    
     local input = Instance.new("TextBox", frame)
     input.Size = UDim2.new(0.45, 0, 0, 22)
     input.Position = UDim2.new(0.5, 0, 0.5, -11)
@@ -381,7 +377,6 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     input.TextSize = 13
     input.ZIndex = zBase + 2
     Instance.new("UICorner", input).CornerRadius = UDim.new(0, 4)
-    
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
         if val then stateTable[stateKey] = val else input.Text = tostring(stateTable[stateKey]) end
@@ -394,7 +389,6 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     frame.BackgroundTransparency = 1
     frame.LayoutOrder = GetOrdem()
     frame.ZIndex = zBase
-    
     local mainBtn = Instance.new("TextButton", frame)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
     mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -406,7 +400,6 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     mainBtn.BorderSizePixel = 0
     mainBtn.ZIndex = zBase + 1
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
-    
     local icone = Instance.new("TextLabel", mainBtn)
     icone.Size = UDim2.new(0, 20, 1, 0)
     icone.Position = UDim2.new(1, -25, 0, 0)
@@ -537,7 +530,6 @@ local function CriarControlesEspaciais(parentCard, zBase, scannerName)
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         btn.MouseButton1Click:Connect(function() if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end end)
     end
-    
     CriarSetinha("^", 27, 0, "Frente")
     CriarSetinha("v", 27, 54, "Tras")
     CriarSetinha("<", 0, 27, "Esquerda")
@@ -571,7 +563,6 @@ end
 
 -- ================= PREENCHENDO ABA 3: FAZENDA =================
 local p3 = Paginas["fazenda"]
-
 local cFarm, zFarm = CriarCard("MAIN FARM", p3, 100)
 CriarToggleLargo("Start Farm", cFarm, State, "AutoFarmingCrops", zFarm, function(v) if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end end)
 local rFarm1 = CriarGridDupla(cFarm, zFarm)
@@ -599,12 +590,12 @@ local rDelay2 = CriarGridDupla(cDelay, zDelay)
 CriarCheckboxMetade("Tween/Voo", rDelay2, State.FarmSettings, "TweenToTarget", zDelay)
 CriarInputMetade("Vel. Voo:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
 local rDelay3 = CriarGridDupla(cDelay, zDelay)
-CriarCheckboxMetade("Esconder Nums", rDelay3, State, "HideNumbers", zDelay, function()
+-- BIND DA CAIXINHA AO SELETOR CORRETO
+CriarCheckboxMetade("Esconder Nums", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
     if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
 end)
 
 local cSave, zSave = CriarCard("SELECTOR & SAVES", p3, 70)
--- O Botão Modificado para Ligar/Desligar Visualmente
 CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Verde", cSave, zSave, function() if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end end)
 CriarControlesEspaciais(cSave, zSave, "ScannerFazenda")
 
@@ -613,52 +604,54 @@ rSaveNome.Size = UDim2.new(0.95, 0, 0, 32)
 rSaveNome.BackgroundTransparency = 1
 rSaveNome.LayoutOrder = GetOrdem()
 rSaveNome.ZIndex = zSave
+local inputPlotFazenda = Instance.new("TextBox", rSaveNome)
+inputPlotFazenda.Size = UDim2.new(0.65, -5, 1, 0)
+inputPlotFazenda.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+inputPlotFazenda.PlaceholderText = "  Nome do seu Plot..."
+inputPlotFazenda.Text = ""
+inputPlotFazenda.TextColor3 = Color3.fromRGB(255, 255, 255)
+inputPlotFazenda.Font = Enum.Font.SourceSans
+inputPlotFazenda.TextSize = 13
+inputPlotFazenda.TextXAlignment = Enum.TextXAlignment.Left
+inputPlotFazenda.ZIndex = zSave + 1
+Instance.new("UICorner", inputPlotFazenda).CornerRadius = UDim.new(0, 4)
 
-local inputPlot = Instance.new("TextBox", rSaveNome)
-inputPlot.Size = UDim2.new(0.65, -5, 1, 0)
-inputPlot.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-inputPlot.PlaceholderText = "  Nome do seu novo Plot..."
-inputPlot.Text = ""
-inputPlot.TextColor3 = Color3.fromRGB(255, 255, 255)
-inputPlot.Font = Enum.Font.SourceSans
-inputPlot.TextSize = 13
-inputPlot.TextXAlignment = Enum.TextXAlignment.Left
-inputPlot.ZIndex = zSave + 1
-Instance.new("UICorner", inputPlot).CornerRadius = UDim.new(0, 4)
+local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
+btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
+btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
+btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
+btnSavePlotFazenda.Text = "💾 Salvar"
+btnSavePlotFazenda.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnSavePlotFazenda.Font = Enum.Font.SourceSansBold
+btnSavePlotFazenda.TextSize = 13
+btnSavePlotFazenda.ZIndex = zSave + 1
+Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
 
-local btnSavePlot = Instance.new("TextButton", rSaveNome)
-btnSavePlot.Size = UDim2.new(0.35, 0, 1, 0)
-btnSavePlot.Position = UDim2.new(0.65, 5, 0, 0)
-btnSavePlot.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
-btnSavePlot.Text = "💾 Salvar"
-btnSavePlot.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnSavePlot.Font = Enum.Font.SourceSansBold
-btnSavePlot.TextSize = 13
-btnSavePlot.ZIndex = zSave + 1
-Instance.new("UICorner", btnSavePlot).CornerRadius = UDim.new(0, 4)
+local plotDropdownFazenda = CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5)
 
-local plotDropdown = CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5)
-
-local function AtualizarListaSaves()
-    if Bot.Modules.PlotManager and plotDropdown then
+-- FILTRO EXCLUSIVO DE "Farming_"
+local function AtualizarListaSavesFazenda()
+    if Bot.Modules.PlotManager and plotDropdownFazenda then
         local plots = Bot.Modules.PlotManager:ObterTodos()
         local lista = {}
-        for nome, _ in pairs(plots) do table.insert(lista, nome) end
+        for nome, _ in pairs(plots) do 
+            if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
+        end
         if #lista == 0 then lista = {"Nenhum"} end
-        plotDropdown:Refresh(lista)
+        plotDropdownFazenda:Refresh(lista)
     end
 end
 
-btnSavePlot.MouseButton1Click:Connect(function()
+btnSavePlotFazenda.MouseButton1Click:Connect(function()
     local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
-    if inputPlot.Text ~= "" and cubo then
-        Bot.Modules.PlotManager:SalvarPlot(inputPlot.Text, cubo.Position, cubo.Size)
-        AtualizarListaSaves()
-        inputPlot.Text = ""
+    if inputPlotFazenda.Text ~= "" and cubo then
+        Bot.Modules.PlotManager:SalvarPlot("Farming_" .. inputPlotFazenda.Text, cubo.Position, cubo.Size)
+        AtualizarListaSavesFazenda()
+        inputPlotFazenda.Text = ""
     end
 end)
 
-local rAcoes = CriarGridTripla(cSave, zSave)
+local rAcoesF = CriarGridTripla(cSave, zSave)
 local function CriarAcaoBotao(texto, cor, parentRow, zBase, callback)
     local b = Instance.new("TextButton", parentRow)
     b.Size = UDim2.new(0.333, -3.3, 1, 0)
@@ -672,44 +665,130 @@ local function CriarAcaoBotao(texto, cor, parentRow, zBase, callback)
     b.MouseButton1Click:Connect(callback)
 end
 
-CriarAcaoBotao("Load", Color3.fromRGB(40, 150, 80), rAcoes, zSave, function()
+CriarAcaoBotao("Load", Color3.fromRGB(40, 150, 80), rAcoesF, zSave, function()
     local sn = State.FarmSettings.CurrentSaveName
     if sn and sn ~= "Nenhum" then
-        local p = Bot.Modules.PlotManager:ObterTodos()[sn]
+        local p = Bot.Modules.PlotManager:ObterTodos()["Farming_" .. sn]
         if p and State.ScannerFazenda then State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) end
     end
 end)
-CriarAcaoBotao("Rewrite", Color3.fromRGB(200, 120, 20), rAcoes, zSave, function()
+CriarAcaoBotao("Rewrite", Color3.fromRGB(200, 120, 20), rAcoesF, zSave, function()
     local sn = State.FarmSettings.CurrentSaveName
     local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
-    if sn and sn ~= "Nenhum" and cubo then Bot.Modules.PlotManager:SalvarPlot(sn, cubo.Position, cubo.Size) end
+    if sn and sn ~= "Nenhum" and cubo then Bot.Modules.PlotManager:SalvarPlot("Farming_" .. sn, cubo.Position, cubo.Size) end
 end)
-CriarAcaoBotao("Delete", Color3.fromRGB(200, 50, 50), rAcoes, zSave, function()
+CriarAcaoBotao("Delete", Color3.fromRGB(200, 50, 50), rAcoesF, zSave, function()
     local sn = State.FarmSettings.CurrentSaveName
     if sn and sn ~= "Nenhum" then
-        Bot.Modules.PlotManager:DeletarPlot(sn)
+        Bot.Modules.PlotManager:DeletarPlot("Farming_" .. sn)
         State.FarmSettings.CurrentSaveName = "Nenhum"
-        AtualizarListaSaves()
+        AtualizarListaSavesFazenda()
     end
 end)
 
-local rSave2 = CriarGridDupla(cSave, zSave)
-CriarCheckboxMetade("Auto Load Start", rSave2, State.FarmSettings, "AutoUseSelectedSave", zSave)
+local rSave2F = CriarGridDupla(cSave, zSave)
+CriarCheckboxMetade("Auto Load Start", rSave2F, State.FarmSettings, "AutoUseSelectedSave", zSave)
 
-task.spawn(function() task.wait(1); AtualizarListaSaves() end)
-
--- ================= ABA 1: GERAL =================
+-- ================= ABA 1: GERAL (COM NOVO MINING SYSTEM) =================
 local p1 = Paginas["seletor"]
 local cMiner, zMiner = CriarCard("MINER & BUILDER", p1, 100)
-CriarToggleLargo("Auto Minerar", cMiner, State, "Minerando", zMiner, function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
+CriarToggleLargo("⛏️ Auto Minerar", cMiner, State, "Minerando", zMiner, function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
 local DropdownBlocos = CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, 95)
 CriarBotaoEstilizado("🔄 Carregar Mochila", cMiner, zMiner, function() if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end end)
 CriarBotaoEstilizado("🔨 Preencher Área do Seletor", cMiner, zMiner, function() if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end end)
 
-local cSelAzul, zSelAzul = CriarCard("SELETOR AZUL", p1, 90)
--- O Botão Modificado para Ligar/Desligar Visualmente
+local cMinerCfg, zMinerCfg = CriarCard("CONFIG & DELAY (MINER)", p1, 90)
+local rMinerDelay1 = CriarGridDupla(cMinerCfg, zMinerCfg)
+CriarCheckboxMetade("Tween/Voo", rMinerDelay1, State.MiningSettings, "TweenToTarget", zMinerCfg)
+CriarInputMetade("Vel. Voo:", rMinerDelay1, State.MiningSettings, "TweenSpeed", 20, zMinerCfg)
+local rMinerDelay2 = CriarGridDupla(cMinerCfg, zMinerCfg)
+-- BIND DA CAIXINHA AO SELETOR CORRETO
+CriarCheckboxMetade("Esconder Nums", rMinerDelay2, State.ScannerGeral, "HideNumbers", zMinerCfg, function()
+    if State.ScannerGeral then State.ScannerGeral:EscanearArea() end
+end)
+
+local cSelAzul, zSelAzul = CriarCard("SELECTOR & SAVES (MINER)", p1, 80)
 CriarBotaoEstilizado("🟦 Ligar/Desligar Cubo Azul", cSelAzul, zSelAzul, function() if State.ScannerGeral then State.ScannerGeral:CriarSeletorFrontal() end end)
 CriarControlesEspaciais(cSelAzul, zSelAzul, "ScannerGeral")
+
+local rSaveNomeM = Instance.new("Frame", cSelAzul)
+rSaveNomeM.Size = UDim2.new(0.95, 0, 0, 32)
+rSaveNomeM.BackgroundTransparency = 1
+rSaveNomeM.LayoutOrder = GetOrdem()
+rSaveNomeM.ZIndex = zSelAzul
+local inputPlotMining = Instance.new("TextBox", rSaveNomeM)
+inputPlotMining.Size = UDim2.new(0.65, -5, 1, 0)
+inputPlotMining.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+inputPlotMining.PlaceholderText = "  Nome do seu Plot..."
+inputPlotMining.Text = ""
+inputPlotMining.TextColor3 = Color3.fromRGB(255, 255, 255)
+inputPlotMining.Font = Enum.Font.SourceSans
+inputPlotMining.TextSize = 13
+inputPlotMining.TextXAlignment = Enum.TextXAlignment.Left
+inputPlotMining.ZIndex = zSelAzul + 1
+Instance.new("UICorner", inputPlotMining).CornerRadius = UDim.new(0, 4)
+
+local btnSavePlotMining = Instance.new("TextButton", rSaveNomeM)
+btnSavePlotMining.Size = UDim2.new(0.35, 0, 1, 0)
+btnSavePlotMining.Position = UDim2.new(0.65, 5, 0, 0)
+btnSavePlotMining.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
+btnSavePlotMining.Text = "💾 Salvar"
+btnSavePlotMining.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnSavePlotMining.Font = Enum.Font.SourceSansBold
+btnSavePlotMining.TextSize = 13
+btnSavePlotMining.ZIndex = zSelAzul + 1
+Instance.new("UICorner", btnSavePlotMining).CornerRadius = UDim.new(0, 4)
+
+local plotDropdownMining = CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul - 5)
+
+-- FILTRO EXCLUSIVO DE "Mining_"
+local function AtualizarListaSavesMining()
+    if Bot.Modules.PlotManager and plotDropdownMining then
+        local plots = Bot.Modules.PlotManager:ObterTodos()
+        local lista = {}
+        for nome, _ in pairs(plots) do 
+            if nome:sub(1, 7) == "Mining_" then table.insert(lista, nome:sub(8)) end
+        end
+        if #lista == 0 then lista = {"Nenhum"} end
+        plotDropdownMining:Refresh(lista)
+    end
+end
+
+btnSavePlotMining.MouseButton1Click:Connect(function()
+    local cubo = State.ScannerGeral and State.ScannerGeral.AncoraPart
+    if inputPlotMining.Text ~= "" and cubo then
+        Bot.Modules.PlotManager:SalvarPlot("Mining_" .. inputPlotMining.Text, cubo.Position, cubo.Size)
+        AtualizarListaSavesMining()
+        inputPlotMining.Text = ""
+    end
+end)
+
+local rAcoesM = CriarGridTripla(cSelAzul, zSelAzul)
+CriarAcaoBotao("Load", Color3.fromRGB(40, 150, 80), rAcoesM, zSelAzul, function()
+    local sn = State.MiningSettings.CurrentSaveName
+    if sn and sn ~= "Nenhum" then
+        local p = Bot.Modules.PlotManager:ObterTodos()["Mining_" .. sn]
+        if p and State.ScannerGeral then State.ScannerGeral:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) end
+    end
+end)
+CriarAcaoBotao("Rewrite", Color3.fromRGB(200, 120, 20), rAcoesM, zSelAzul, function()
+    local sn = State.MiningSettings.CurrentSaveName
+    local cubo = State.ScannerGeral and State.ScannerGeral.AncoraPart
+    if sn and sn ~= "Nenhum" and cubo then Bot.Modules.PlotManager:SalvarPlot("Mining_" .. sn, cubo.Position, cubo.Size) end
+end)
+CriarAcaoBotao("Delete", Color3.fromRGB(200, 50, 50), rAcoesM, zSelAzul, function()
+    local sn = State.MiningSettings.CurrentSaveName
+    if sn and sn ~= "Nenhum" then
+        Bot.Modules.PlotManager:DeletarPlot("Mining_" .. sn)
+        State.MiningSettings.CurrentSaveName = "Nenhum"
+        AtualizarListaSavesMining()
+    end
+end)
+
+local rSave2M = CriarGridDupla(cSelAzul, zSelAzul)
+CriarCheckboxMetade("Auto Load Start", rSave2M, State.MiningSettings, "AutoUseSelectedSave", zSelAzul)
+
+task.spawn(function() task.wait(1); AtualizarListaSavesFazenda(); AtualizarListaSavesMining() end)
 
 -- ================= ABA 4: SISTEMA =================
 local p4 = Paginas["sistema"]

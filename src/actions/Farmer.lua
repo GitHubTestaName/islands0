@@ -6,7 +6,6 @@ local State = Bot.State
 local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
--- A MÁGICA DO TWEEN/VOO SEGURO
 local function IrParaAlvo(alvoPos)
     if not State.FarmSettings.TweenToTarget then return end
     
@@ -14,14 +13,12 @@ local function IrParaAlvo(alvoPos)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Distância limite de alcance padrão é em torno de 12 a 15 studs.
     local dist = (hrp.Position - alvoPos).Magnitude
     if dist > 12 then
         hrp.Anchored = true
         local speed = State.FarmSettings.TweenSpeed or 20
         local tempo = dist / speed
         
-        -- Paira 6 blocos acima da planta, olhando ligeiramente para baixo (direção ao alvo)
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
         local hoverCFrame = CFrame.new(hoverPos, alvoPos)
         
@@ -32,15 +29,11 @@ local function IrParaAlvo(alvoPos)
         )
         
         tween:Play()
-        
-        -- Aguarda o voo terminar, mas cancela instantaneamente se o jogador desligar o botão
         while tween.PlaybackState == Enum.PlaybackState.Playing and State.AutoFarmingCrops do
             task.wait(0.05)
         end
         
-        if not State.AutoFarmingCrops then
-            tween:Cancel()
-        end
+        if not State.AutoFarmingCrops then tween:Cancel() end
     end
 end
 
@@ -74,7 +67,8 @@ function Farmer:AlternarAutoFazenda(valor)
         if State.FarmSettings.AutoUseSelectedSave and State.FarmSettings.CurrentSaveName then
             local PlotManager = Bot.Modules.PlotManager
             local plots = PlotManager:ObterTodos()
-            local plot = plots[State.FarmSettings.CurrentSaveName]
+            -- LÊ O PREFIXO CORRETO!
+            local plot = plots["Farming_" .. State.FarmSettings.CurrentSaveName]
             if plot and State.ScannerFazenda then
                 State.ScannerFazenda:CarregarPlot(Vector3.new(plot.PosX, plot.PosY, plot.PosZ), Vector3.new(plot.SizeX, plot.SizeY, plot.SizeZ))
             end
@@ -168,7 +162,7 @@ function Farmer:AlternarAutoFazenda(valor)
                             if plantaObj then
                                 local isMadura = plantaObj:FindFirstChild("Harvestable", true)
                                 if isMadura then
-                                    IrParaAlvo(posPlanta) -- VOA ATÉ A PLANTA ANTES DE COLHER!
+                                    IrParaAlvo(posPlanta) 
                                     local payload = {
                                         dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                         player = LocalPlayer,
@@ -183,7 +177,7 @@ function Farmer:AlternarAutoFazenda(valor)
                             if not blocoSolo and State.FarmSettings.PlaceGrass then
                                 local blockGrass = LocalPlayer.Backpack:FindFirstChild("grass") or (char and char:FindFirstChild("grass"))
                                 if blockGrass then
-                                    IrParaAlvo(posSolo) -- VOA ATÉ O BURACO
+                                    IrParaAlvo(posSolo) 
                                     local payload = {
                                         uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
                                         cframe = CFrame.new(posSolo),
@@ -201,14 +195,14 @@ function Farmer:AlternarAutoFazenda(valor)
                                 local terraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
                                 
                                 if terraBruta and State.FarmSettings.PlowGrass then
-                                    IrParaAlvo(posSolo) -- VOA ATÉ A TERRA BRUTA
+                                    IrParaAlvo(posSolo) 
                                     pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
                                     task.wait(0.1)
                                     terraArada = true 
                                 end
                                 
                                 if terraArada and State.FarmSettings.AutoReplace and toolEmUso then
-                                    IrParaAlvo(posPlanta) -- VOA ATÉ A TERRA ARADA
+                                    IrParaAlvo(posPlanta) 
                                     local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
                                     local targetCFrame = CFrame.new(posPlanta)
                                     
@@ -229,7 +223,6 @@ function Farmer:AlternarAutoFazenda(valor)
                 task.wait(1)
             end
             
-            -- LÓGICA DE LIMPEZA: Solta o personagem quando o Bot é desligado!
             if Manager then Manager:AtualizarStatus("Auto-Fazenda Desligada") end
             local charAtual = LocalPlayer.Character
             if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
