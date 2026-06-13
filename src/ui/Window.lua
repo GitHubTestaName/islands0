@@ -20,7 +20,7 @@ MainFrame.Size = UDim2.new(0, 650, 0, 500)
 MainFrame.Position = UDim2.new(0.5, -325, 0.5, -250)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true -- RESOLVE O VAZAMENTO DE ITENS PELA TELA
+MainFrame.ClipsDescendants = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 State.HideKey = Enum.KeyCode.V
@@ -48,7 +48,7 @@ TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TopBar.BorderSizePixel = 0
 TopBar.Active = true
-TopBar.ZIndex = 5000 -- Garante que a TopBar fique sempre acima de qualquer rolagem
+TopBar.ZIndex = 5000
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
 local TopBarBase = Instance.new("Frame", TopBar)
@@ -161,7 +161,7 @@ local function CriarAba(nome, id)
     pg.BorderSizePixel = 0
     pg.ScrollBarThickness = 5
     pg.Visible = false
-    pg.ClipsDescendants = true -- IMPEDE QUE OS CARDS VAZEM POR CIMA DA TOPBAR
+    pg.ClipsDescendants = true 
     
     local layout = Instance.new("UIListLayout", pg)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -174,7 +174,7 @@ local function CriarAba(nome, id)
     local padding = Instance.new("UIPadding", pg)
     padding.PaddingLeft = UDim.new(0, 10)
     padding.PaddingTop = UDim.new(0, 10)
-    padding.PaddingBottom = UDim.new(0, 250) -- ALMOFADA PARA OS DROPDOWNS DO FUNDO NÃO SEREM CORTADOS
+    padding.PaddingBottom = UDim.new(0, 250) 
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 260)
@@ -201,10 +201,8 @@ BotoesAba["fazenda"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["fazenda"].UIStroke.Transparency = 0
 Paginas["fazenda"].Visible = true
 
-
--- ================= A MÁGICA DO Z-INDEX CORRIGIDA =================
 local layoutOrderGlobal = 0
-local zIndexGlobal = 1000 -- Começa alto e vai descendo para garantir que o Card de cima sobreponha o de baixo
+local zIndexGlobal = 1000 
 
 local function GetOrdem() 
     layoutOrderGlobal = layoutOrderGlobal + 1 
@@ -220,7 +218,7 @@ local function CriarCard(titulo, parent)
     card.Size = UDim2.new(0, 240, 0, 0)
     card.LayoutOrder = order
     card.ZIndex = baseZ
-    card.ClipsDescendants = false -- Permite que os dropdowns saiam PARA FORA do cartão
+    card.ClipsDescendants = false 
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
     
     local stroke = Instance.new("UIStroke", card)
@@ -254,7 +252,7 @@ local function CriarCard(titulo, parent)
     local cLayout = Instance.new("UIListLayout", content)
     cLayout.Padding = UDim.new(0, 8)
     cLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    cLayout.SortOrder = Enum.SortOrder.LayoutOrder -- Preserva a ordem de criação
+    cLayout.SortOrder = Enum.SortOrder.LayoutOrder 
 
     local pad = Instance.new("UIPadding", content)
     pad.PaddingTop = UDim.new(0, 10)
@@ -268,7 +266,6 @@ local function CriarCard(titulo, parent)
     return content, baseZ
 end
 
--- Utilitários Internos do Cartão (Herdam o baseZ do Cartão)
 local function CriarGridDupla(parent, cardZBase)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(0.95, 0, 0, 32)
@@ -400,7 +397,6 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     end)
 end
 
--- ================= DROPDOWN BLINDADO =================
 local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
@@ -433,7 +429,6 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     dropdownContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     dropdownContainer.BorderSizePixel = 0
     dropdownContainer.Visible = false
-    -- A MÁGICA DE SOBREPOSIÇÃO: Recebe +10 ao ZIndex Base do Cartão.
     dropdownContainer.ZIndex = cardZBase + 10 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 4)
     
@@ -624,7 +619,6 @@ local function CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     CriarAcaoVert("🔽 Descer Seletor", "Descer")
 end
 
-
 -- ================= PREENCHENDO ABA 3: FAZENDA =================
 local p3 = Paginas["fazenda"]
 local cFarm, zFarm = CriarCard("MAIN FARM", p3)
@@ -636,12 +630,14 @@ local rFarm2 = CriarGridDupla(cFarm, zFarm)
 CriarCheckboxMetade("Auto Replace", rFarm2, State.FarmSettings, "AutoReplace", zFarm)
 
 local cSeed, zSeed = CriarCard("SEED SELECT", p3) 
+-- A MUDANÇA PARA LER TODAS AS SEMENTES DO JOGO
 local DropdownSementes = CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, false)
 local PriorizeDropdown = CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
 CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
     if Bot.Modules.Manager then 
-        local inv = Bot.Modules.Manager:GetInventoryTools("Seed")
-        DropdownSementes:Refresh(inv)
+        local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+        DropdownSementes:Refresh(sementesGerais)
+        PriorizeDropdown:Refresh(sementesGerais)
     end
 end)
 
@@ -875,6 +871,7 @@ task.spawn(function()
     AtualizarListaSavesMining()
     if Bot.Modules.Manager then
         local sementesGlobais = Bot.Modules.Manager:GetAllSeedsInGame()
+        DropdownSementes:Refresh(sementesGlobais)
         PriorizeDropdown:Refresh(sementesGlobais)
     end
 end)

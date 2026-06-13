@@ -13,7 +13,7 @@ local function IrParaAlvo(alvoPos)
     if not hrp then return end
 
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 15 then -- IGUALADO AO FARMER: Raio de 5 Blocos!
+    if dist > 15 then
         hrp.Anchored = true
         local speed = State.MiningSettings.TweenSpeed or 20
         local tempo = dist / speed
@@ -48,6 +48,15 @@ function Miner:ExecutarLoop()
             continue
         end
 
+        -- ORDENAÇÃO DINÂMICA: Sempre ataca as pedras mais próximas do boneco
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        table.sort(Scanner.ListaBlocos, function(a, b)
+            local posAtual = hrp and hrp.Position or Scanner.AncoraPart.Position
+            return (posAtual - a.Posicao).Magnitude < (posAtual - b.Posicao).Magnitude
+        end)
+
         for i, dados in ipairs(Scanner.ListaBlocos) do
             if not State.Minerando then break end
 
@@ -58,6 +67,9 @@ function Miner:ExecutarLoop()
             local partTarget = bloco 
             local tentativas = 0
             
+            local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
+            IrParaAlvo(basePos) 
+            
             while bloco and bloco:IsDescendantOf(workspace) do
                 if not State.Minerando then break end
                 
@@ -66,9 +78,6 @@ function Miner:ExecutarLoop()
                     if dados.Marcador then dados.Marcador:Destroy() end
                     break 
                 end
-                
-                local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
-                IrParaAlvo(basePos) 
                 
                 tentativas = tentativas + 1
                 if Manager then
