@@ -57,7 +57,7 @@ function GeralTab:Construir(paginaPai)
     btnSavePlotMining.ZIndex = zSelAzul + 3
     Instance.new("UICorner", btnSavePlotMining).CornerRadius = UDim.new(0, 4)
 
-    local plotDropdownMining = Componentes:CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul - 5, false)
+    local plotDropdownMining = Componentes:CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul, false)
 
     local function AtualizarListaSavesMining()
         if Bot.Modules.PlotManager and plotDropdownMining then

@@ -27,10 +27,10 @@ function Manager:GetInventoryTools(filtroTipo)
                 table.insert(toolsEncontradas, item.Name)
                 itensProcessados[item.Name] = true
             elseif filtroTipo == "Seed" then
-                -- PROCURA PELO NOME OU PELO SCRIPT INTERNO "SEED"
+                -- BUSCA PROFUNDA (GetDescendants resolve pastas escondidas)
                 local isSeed = item.Name:lower():match("seed") or item:FindFirstChild("cropSeed")
                 if not isSeed then
-                    for _, child in ipairs(item:GetChildren()) do
+                    for _, child in ipairs(item:GetDescendants()) do
                         if child:IsA("LocalScript") and child.Name:lower() == "seed" then
                             isSeed = true break
                         end
@@ -50,8 +50,10 @@ function Manager:GetInventoryTools(filtroTipo)
     end
     for _, item in ipairs(player.Backpack:GetChildren()) do processarItem(item) end
 
+    -- NOTA: O jogo Islands esconde as sementes que não estão na "hotbar" (Backpack). 
+    -- Para a lista não ficar vazia, caso não haja nada na mão, mostramos uma msg.
     table.sort(toolsEncontradas)
-    return #toolsEncontradas > 0 and toolsEncontradas or {"Nenhum item encontrado"}
+    return #toolsEncontradas > 0 and toolsEncontradas or {"Nenhuma Ferramenta Equipada"}
 end
 
 function Manager:GetAllSeedsInGame()
@@ -60,26 +62,24 @@ function Manager:GetAllSeedsInGame()
     
     if rsTools then
         for _, tool in ipairs(rsTools:GetChildren()) do
-            if tool:IsA("Tool") or tool:IsA("Folder") then
-                -- LÓGICA CORRIGIDA: LÊ OS ARQUIVOS PROFUNDOS DOS DEVS
-                local isSeed = tool.Name:lower():match("seed") or tool:FindFirstChild("cropSeed")
-                if not isSeed then
-                    for _, child in ipairs(tool:GetChildren()) do
-                        if child:IsA("LocalScript") and child.Name:lower() == "seed" then
-                            isSeed = true break
-                        end
+            local isSeed = tool.Name:lower():match("seed") or tool:FindFirstChild("cropSeed")
+            if not isSeed then
+                -- BUSCA PROFUNDA NOS ARQUIVOS DO SERVIDOR
+                for _, child in ipairs(tool:GetDescendants()) do
+                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                        isSeed = true break
                     end
                 end
-                
-                if isSeed and not table.find(allSeeds, tool.Name) then
-                    table.insert(allSeeds, tool.Name)
-                end
+            end
+            
+            if isSeed and not table.find(allSeeds, tool.Name) then
+                table.insert(allSeeds, tool.Name)
             end
         end
     end
     
     table.sort(allSeeds)
-    return #allSeeds > 0 and allSeeds or {"Nenhuma Semente Encontrada"}
+    return #allSeeds > 0 and allSeeds or {"Nenhuma Semente Encontrada no Jogo"}
 end
 
 function Manager:AtualizarStatus(mensagem)

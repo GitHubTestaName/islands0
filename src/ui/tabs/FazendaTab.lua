@@ -71,7 +71,7 @@ function FazendaTab:Construir(paginaPai)
     btnSavePlotFazenda.ZIndex = zSave + 3
     Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
 
-    local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5, false)
+    local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave, false)
 
     local function AtualizarListaSavesFazenda()
         if Bot.Modules.PlotManager and plotDropdownFazenda then

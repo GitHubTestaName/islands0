@@ -5,42 +5,10 @@ local Bot = _G.IslandsBot
 local State = Bot.State
 local LocalPlayer = Players.LocalPlayer
 
-local function IrParaAlvo(alvoPos)
-    if not State.MiningSettings.TweenToTarget then return end
-    
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 15 then
-        hrp.Anchored = true
-        local speed = State.MiningSettings.TweenSpeed or 20
-        local tempo = dist / speed
-        
-        local hoverPos = alvoPos + Vector3.new(0, 6, 0)
-        -- Correção Crítica: CFrame Flat sem rotação absurda
-        local hoverCFrame = CFrame.new(hoverPos)
-        
-        local tween = game:GetService("TweenService"):Create(
-            hrp, 
-            TweenInfo.new(tempo, Enum.EasingStyle.Linear), 
-            {CFrame = hoverCFrame}
-        )
-        
-        if Bot.Modules.Manager then Bot.Modules.Manager:AtualizarStatus("✈️ Voando para pedra...") end
-        
-        tween:Play()
-        while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do
-            task.wait(0.05)
-        end
-        if not State.Minerando then tween:Cancel() end
-    end
-end
-
 function Miner:ExecutarLoop()
     local Manager = Bot.Modules.Manager
     local Scanner = State.ScannerGeral
+    local Navigator = Bot.Modules.Navigator
 
     while State.Minerando do
         if Scanner then Scanner:EscanearArea() end
@@ -70,12 +38,17 @@ function Miner:ExecutarLoop()
             local tentativas = 0
             
             local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
-            IrParaAlvo(basePos) 
+            
+            if State.MiningSettings.TweenToTarget and Navigator then
+                local tween = Navigator:VoarPara(basePos, State.MiningSettings.TweenSpeed)
+                if tween then
+                    while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do task.wait(0.05) end
+                end
+            end
             
             while bloco and bloco:IsDescendantOf(workspace) do
                 if not State.Minerando then break end
                 
-                -- Se não usa tween, e a pedra está muito longe do boneco agora, pula a pedra
                 if not State.MiningSettings.TweenToTarget then
                     local pAtual = (char and char:FindFirstChild("HumanoidRootPart")) and char.HumanoidRootPart.Position or basePos
                     if (pAtual - basePos).Magnitude > 18 then break end
@@ -120,14 +93,12 @@ function Miner:ExecutarLoop()
         task.wait(0.2)
     end
     
-    local charAtual = LocalPlayer.Character
-    if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
-        charAtual.HumanoidRootPart.Anchored = false
-    end
+    if Navigator then Navigator:LimparVoo() end
 end
 
 function Miner:Alternar(valor)
     local Manager = Bot.Modules.Manager
+    local Navigator = Bot.Modules.Navigator
     State.Minerando = valor
     
     if valor then
@@ -149,6 +120,7 @@ function Miner:Alternar(valor)
         State.Construindo = false
         task.spawn(function() Miner:ExecutarLoop() end)
     else
+        if Navigator then Navigator:LimparVoo() end
         if Manager then Manager:AtualizarStatus("Ocioso") end
     end
     return true
