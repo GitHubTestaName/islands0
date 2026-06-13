@@ -16,30 +16,34 @@ function Manager:ObterBlocoRaiz(part)
     return part:IsA("BasePart") and part or nil
 end
 
--- ================= A REGRA EXATA DE INVENTÁRIO (BLOCK-PLACE) =================
+-- ================= A LEITURA ABSOLUTA DO INVENTÁRIO =================
 function Manager:GetInventoryTools(filtroTipo)
     local player = Players.LocalPlayer
     local toolsEncontradas = {}
     local itensProcessados = {}
 
     local function processarItem(item)
-        if item:IsA("Tool") and not itensProcessados[item.Name] then
+        -- REMOVIDO: O filtro de classe (item:IsA("Tool")). Vamos olhar TUDO sem julgar!
+        if not itensProcessados[item.Name] then
             local atendeFiltro = false
             
-            -- Varre tudo dentro da Tool procurando os LocalScripts chave
-            for _, child in ipairs(item:GetDescendants()) do
-                if child:IsA("LocalScript") then
-                    local lowerName = child.Name:lower()
+            pcall(function()
+                -- Varre literalmente TUDO o que estiver dentro do item
+                for _, child in ipairs(item:GetDescendants()) do
                     
-                    if filtroTipo == "Block" and lowerName == "block-place" then
+                    -- Limpa o nome (remove espaços em branco invisíveis e letras maiúsculas)
+                    local nomeLimpo = string.gsub(child.Name:lower(), "%s+", "")
+                    
+                    -- REMOVIDO: O filtro de classe (child:IsA("LocalScript")). Se tem o nome certo, entra!
+                    if filtroTipo == "Block" and nomeLimpo == "block-place" then
                         atendeFiltro = true
                         break
-                    elseif filtroTipo == "Seed" and lowerName == "seed" then
+                    elseif filtroTipo == "Seed" and nomeLimpo == "seed" then
                         atendeFiltro = true
                         break
                     end
                 end
-            end
+            end)
 
             if atendeFiltro then
                 table.insert(toolsEncontradas, item.Name)
@@ -48,16 +52,18 @@ function Manager:GetInventoryTools(filtroTipo)
         end
     end
 
-    -- 1. Olha para a mão do boneco
-    if player.Character then
-        for _, item in ipairs(player.Character:GetChildren()) do processarItem(item) end
-    end
-    
-    -- 2. Olha para a mochila (Backpack) inteira
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        for _, item in ipairs(backpack:GetChildren()) do processarItem(item) end
-    end
+    pcall(function()
+        -- 1. Lê o que o boneco está a segurar na mão no momento
+        if player.Character then
+            for _, item in ipairs(player.Character:GetChildren()) do processarItem(item) end
+        end
+        
+        -- 2. Lê tudo o que está dentro da pasta Backpack (A sua ordem direta!)
+        local backpack = player:FindFirstChild("Backpack")
+        if backpack then
+            for _, item in ipairs(backpack:GetChildren()) do processarItem(item) end
+        end
+    end)
 
     table.sort(toolsEncontradas)
     return toolsEncontradas
@@ -68,10 +74,11 @@ function Manager:GetAllSeedsInGame()
     local rsTools = ReplicatedStorage:FindFirstChild("Tools")
     
     if rsTools then
-        for _, tool in ipairs(rsTools:GetChildren()) do
-            if tool:IsA("Tool") or tool:IsA("Folder") then
+        pcall(function()
+            for _, tool in ipairs(rsTools:GetChildren()) do
                 for _, child in ipairs(tool:GetDescendants()) do
-                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                    local nomeLimpo = string.gsub(child.Name:lower(), "%s+", "")
+                    if nomeLimpo == "seed" then
                         if not table.find(allSeeds, tool.Name) then
                             table.insert(allSeeds, tool.Name)
                         end
@@ -79,7 +86,7 @@ function Manager:GetAllSeedsInGame()
                     end
                 end
             end
-        end
+        end)
     end
     
     table.sort(allSeeds)
