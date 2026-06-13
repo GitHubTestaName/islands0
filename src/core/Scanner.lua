@@ -12,14 +12,12 @@ local LocalPlayer = Players.LocalPlayer
 
 function Scanner.new(corCubo)
     local self = setmetatable({}, Scanner)
-    
     self.Cor = corCubo or Color3.fromRGB(0, 150, 255)
     self.AncoraPart = nil
     self.Handles = nil
     self.CaixaVisual = nil
     self.MarcadoresVisuais = {}
     self.ListaBlocos = {}
-    
     return self
 end
 
@@ -38,7 +36,6 @@ end
 
 function Scanner:CriarNumeroVisual(posicao, numero)
     if Bot.State.HideNumbers then return nil end
-    
     local part = Instance.new("Part")
     part.Size = Vector3.new(0.5, 0.5, 0.5)
     part.Position = posicao + Vector3.new(0, 1.5, 0)
@@ -48,11 +45,9 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     part.CanTouch = false
     part.Transparency = 1
     part.Parent = Workspace
-    
     local bg = Instance.new("BillboardGui", part)
     bg.Size = UDim2.new(0, 25, 0, 25)
     bg.AlwaysOnTop = true
-    
     local txt = Instance.new("TextLabel", bg)
     txt.Size = UDim2.new(1, 0, 1, 0)
     txt.BackgroundTransparency = 0.2
@@ -61,7 +56,6 @@ function Scanner:CriarNumeroVisual(posicao, numero)
     txt.TextScaled = true
     txt.Font = Enum.Font.SourceSansBold
     txt.Text = tostring(numero)
-    
     table.insert(self.MarcadoresVisuais, part)
     return part
 end
@@ -72,7 +66,6 @@ function Scanner:AlinharParaGrid(posicao)
     for _, island in pairs(Workspace:WaitForChild("Islands"):GetChildren()) do
         if island:FindFirstChild("Blocks") then minhaIlha = island; break end
     end
-    
     if minhaIlha then
         local umBloco = minhaIlha.Blocks:FindFirstChildWhichIsA("Model") or minhaIlha.Blocks:FindFirstChildWhichIsA("BasePart")
         if umBloco then
@@ -80,11 +73,9 @@ function Scanner:AlinharParaGrid(posicao)
             offsetGrid = Vector3.new(bp.X % Config.BLOCK_SIZE, bp.Y % Config.BLOCK_SIZE, bp.Z % Config.BLOCK_SIZE)
         end
     end
-    
     local nx = math.floor((posicao.X - offsetGrid.X) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.X
     local ny = math.floor((posicao.Y - offsetGrid.Y) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.Y
     local nz = math.floor((posicao.Z - offsetGrid.Z) / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE + offsetGrid.Z
-    
     return Vector3.new(nx, ny, nz)
 end
 
@@ -92,10 +83,8 @@ function Scanner:MoverSeletor(direcao)
     if not self.AncoraPart then return end
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     local look = char.HumanoidRootPart.CFrame.LookVector
     local frenteWorld, direitaWorld
-    
     if math.abs(look.X) > math.abs(look.Z) then
         frenteWorld = Vector3.new(math.sign(look.X) * Config.BLOCK_SIZE, 0, 0)
         direitaWorld = Vector3.new(0, 0, math.sign(look.X) * Config.BLOCK_SIZE)
@@ -103,7 +92,6 @@ function Scanner:MoverSeletor(direcao)
         frenteWorld = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
         direitaWorld = Vector3.new(-math.sign(look.Z) * Config.BLOCK_SIZE, 0, 0)
     end
-    
     local d = Vector3.new(0,0,0)
     if direcao == "Frente" then d = frenteWorld
     elseif direcao == "Tras" then d = -frenteWorld
@@ -112,7 +100,6 @@ function Scanner:MoverSeletor(direcao)
     elseif direcao == "Subir" then d = Vector3.new(0, Config.BLOCK_SIZE, 0)
     elseif direcao == "Descer" then d = Vector3.new(0, -Config.BLOCK_SIZE, 0)
     end
-    
     self.AncoraPart.Position = self.AncoraPart.Position + d
     if self.CaixaVisual then self.CaixaVisual.Adornee = self.AncoraPart end
     self:EscanearArea()
@@ -121,28 +108,22 @@ end
 function Scanner:EscanearArea()
     if not self.AncoraPart then return end
     self:LimparEnumeracao()
-    
     local minhaIlha = nil
     for _, island in pairs(Workspace:WaitForChild("Islands"):GetChildren()) do
         if island:FindFirstChild("Blocks") then minhaIlha = island; break end
     end
     if not minhaIlha then return end
-
     local overlapParams = OverlapParams.new()
     overlapParams.FilterDescendantsInstances = {minhaIlha.Blocks}
     overlapParams.FilterType = Enum.RaycastFilterType.Include
-    
     local querySize = self.AncoraPart.Size - Vector3.new(0.2, 0.2, 0.2)
     local partsInBox = workspace:GetPartBoundsInBox(self.AncoraPart.CFrame, querySize, overlapParams)
-    
     local blocosUnicos = {}
     local blocosEncontrados = {}
     local Manager = Bot.Modules.Manager
-
     for _, part in ipairs(partsInBox) do
         local lowerName = part.Name:lower()
         if lowerName == "trunk" or lowerName == "top" then continue end
-
         local rootBlock = Manager:ObterBlocoRaiz(part)
         if rootBlock and not blocosUnicos[rootBlock] then
             blocosUnicos[rootBlock] = true
@@ -150,13 +131,11 @@ function Scanner:EscanearArea()
             table.insert(blocosEncontrados, { Instancia = rootBlock, Posicao = pos, Nome = rootBlock.Name })
         end
     end
-
     table.sort(blocosEncontrados, function(a, b)
         if math.abs(a.Posicao.Y - b.Posicao.Y) > 0.5 then return a.Posicao.Y > b.Posicao.Y end
         if math.abs(a.Posicao.Z - b.Posicao.Z) > 0.5 then return a.Posicao.Z < b.Posicao.Z end
         return a.Posicao.X < b.Posicao.X
     end)
-
     for i, dadosBloco in ipairs(blocosEncontrados) do
         local visualPart = self:CriarNumeroVisual(dadosBloco.Posicao, i)
         if visualPart then dadosBloco.Marcador = visualPart end
@@ -166,7 +145,6 @@ end
 
 function Scanner:MontarCuboVisuais(posExata, tamanho)
     self:LimparAncora()
-    
     self.AncoraPart = Instance.new("Part")
     self.AncoraPart.Size = tamanho or Vector3.new(Config.BLOCK_SIZE, Config.BLOCK_SIZE, Config.BLOCK_SIZE)
     self.AncoraPart.Position = posExata
@@ -177,25 +155,21 @@ function Scanner:MontarCuboVisuais(posExata, tamanho)
     self.AncoraPart.Transparency = 0.7
     self.AncoraPart.Color = self.Cor
     self.AncoraPart.Parent = Workspace
-
     self.CaixaVisual = Instance.new("SelectionBox")
     self.CaixaVisual.Color3 = self.Cor
     self.CaixaVisual.LineThickness = 0.05
     self.CaixaVisual.Adornee = self.AncoraPart
     self.CaixaVisual.Parent = self.AncoraPart
-
     self.Handles = Instance.new("Handles")
     self.Handles.Color3 = Color3.fromRGB(255, 200, 50)
     self.Handles.Style = Enum.HandlesStyle.Resize
     self.Handles.Adornee = self.AncoraPart
     self.Handles.Parent = CoreGui
-
     local sizeInicial, cframeInicial
     self.Handles.MouseButton1Down:Connect(function()
         sizeInicial = self.AncoraPart.Size
         cframeInicial = self.AncoraPart.CFrame
     end)
-
     self.Handles.MouseDrag:Connect(function(face, distancia)
         local deltaSnap = math.floor(distancia / Config.BLOCK_SIZE + 0.5) * Config.BLOCK_SIZE
         if face == Enum.NormalId.Front or face == Enum.NormalId.Back then
@@ -209,33 +183,33 @@ function Scanner:MontarCuboVisuais(posExata, tamanho)
             self.AncoraPart.CFrame = cframeInicial * CFrame.new(deltaSnap / 2 * (face == Enum.NormalId.Right and 1 or -1), 0, 0)
         end
     end)
-
     self.Handles.MouseButton1Up:Connect(function() self:EscanearArea() end)
     self:EscanearArea()
 end
 
 function Scanner:CriarSeletorFrontal()
+    -- LÓGICA DE TOGGLE: Se já existir, destrói e não cria nada!
+    if self.AncoraPart then
+        self:LimparAncora()
+        return
+    end
+
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     local hrp = char.HumanoidRootPart
     local look = hrp.CFrame.LookVector
-    
     local dirVector = Vector3.new(0, 0, 0)
     if math.abs(look.X) > math.abs(look.Z) then
         dirVector = Vector3.new(math.sign(look.X) * Config.BLOCK_SIZE, 0, 0)
     else
         dirVector = Vector3.new(0, 0, math.sign(look.Z) * Config.BLOCK_SIZE)
     end
-
     local posExata = hrp.Position + dirVector
     local Manager = Bot.Modules.Manager
-    
     local params = RaycastParams.new()
     params.FilterDescendantsInstances = {char}
     params.FilterType = Enum.RaycastFilterType.Exclude
     local ray = workspace:Raycast(hrp.Position, Vector3.new(0, -20, 0), params)
-    
     if ray and ray.Instance and Manager then
         local inst = ray.Instance
         local lowerName = inst.Name:lower()
@@ -247,16 +221,11 @@ function Scanner:CriarSeletorFrontal()
             end
         end
     end
-
     posExata = self:AlinharParaGrid(posExata)
     self:MontarCuboVisuais(posExata)
 end
 
 function Scanner:CarregarPlot(posicao, tamanho)
-    -- A MÁGICA ESTÁ AQUI: Removemos o AlinharParaGrid!
-    -- O cubo expandido (ex: 2 blocos de largura) tem o seu centro físico na divisa dos blocos (ex: 1.5 studs).
-    -- A função AlinharParaGrid estava forçando ele a ir para o centro absoluto (3 studs), empurrando o cubo inteiro para o lado!
-    -- Como a posição salva no JSON JÁ É milimetricamente perfeita, basta criarmos o cubo direto nela.
     self:MontarCuboVisuais(posicao, tamanho)
 end
 

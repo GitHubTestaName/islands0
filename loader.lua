@@ -12,12 +12,13 @@ _G.IslandsBot = {
     State = {
         ScannerGeral = nil,
         ScannerFazenda = nil,
-        HideNumbers = false, -- NOVO ESTADO AQUI
+        HideNumbers = false, 
         
         FarmSettings = {
             PlowGrass = false, PlaceGrass = false, AutoReplace = false,
             PrioritizePlant = "Nenhum", HarvestDelay = 0.1, PlantDelay = 0.15,
-            AutoUseSelectedSave = false, CurrentSaveName = "Nenhum"
+            AutoUseSelectedSave = false, CurrentSaveName = "Nenhum",
+            TweenToTarget = false, TweenSpeed = 20 -- NOVAS CONFIGURAÇÕES DE VOO
         },
         
         AncoraPart = nil, Handles = nil, CaixaVisual = nil,

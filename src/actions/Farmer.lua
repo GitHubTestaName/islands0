@@ -6,6 +6,44 @@ local State = Bot.State
 local Config = Bot.Config
 local LocalPlayer = Players.LocalPlayer
 
+-- A MÁGICA DO TWEEN/VOO SEGURO
+local function IrParaAlvo(alvoPos)
+    if not State.FarmSettings.TweenToTarget then return end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- Distância limite de alcance padrão é em torno de 12 a 15 studs.
+    local dist = (hrp.Position - alvoPos).Magnitude
+    if dist > 12 then
+        hrp.Anchored = true
+        local speed = State.FarmSettings.TweenSpeed or 20
+        local tempo = dist / speed
+        
+        -- Paira 6 blocos acima da planta, olhando ligeiramente para baixo (direção ao alvo)
+        local hoverPos = alvoPos + Vector3.new(0, 6, 0)
+        local hoverCFrame = CFrame.new(hoverPos, alvoPos)
+        
+        local tween = game:GetService("TweenService"):Create(
+            hrp, 
+            TweenInfo.new(tempo, Enum.EasingStyle.Linear), 
+            {CFrame = hoverCFrame}
+        )
+        
+        tween:Play()
+        
+        -- Aguarda o voo terminar, mas cancela instantaneamente se o jogador desligar o botão
+        while tween.PlaybackState == Enum.PlaybackState.Playing and State.AutoFarmingCrops do
+            task.wait(0.05)
+        end
+        
+        if not State.AutoFarmingCrops then
+            tween:Cancel()
+        end
+    end
+end
+
 function Farmer:ArarTerra()
     local Manager = Bot.Modules.Manager
     local Scanner = State.ScannerFazenda
@@ -54,9 +92,6 @@ function Farmer:AlternarAutoFazenda(valor)
             while State.AutoFarmingCrops do
                 if not Scanner.AncoraPart then break end
 
-                -- =========================================================
-                -- 1. PRÉ-EQUIPAMENTO DE SEMENTES
-                -- =========================================================
                 local stateSementes = State.SementeSelecionada
                 if type(stateSementes) ~= "table" then stateSementes = {["All"] = true} end
                 
@@ -89,9 +124,6 @@ function Farmer:AlternarAutoFazenda(valor)
                     end
                 end
 
-                -- =========================================================
-                -- 2. CACHE NA VELOCIDADE DA LUZ (Zero Lag Spatial Queries)
-                -- =========================================================
                 local cacheSolos = {}
                 local cachePlantas = {}
                 local bounds = workspace:GetPartBoundsInBox(Scanner.AncoraPart.CFrame, Scanner.AncoraPart.Size)
@@ -114,9 +146,6 @@ function Farmer:AlternarAutoFazenda(valor)
                     end
                 end
 
-                -- =========================================================
-                -- 3. LOOP DA MATEMÁTICA COM VERIFICAÇÃO INSTANTÂNEA
-                -- =========================================================
                 local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
 
@@ -136,10 +165,10 @@ function Farmer:AlternarAutoFazenda(valor)
                             local plantaObj = cachePlantas[keyPlanta]
                             local blocoSolo = cacheSolos[keySolo]
 
-                            -- MAGIA DO STAGE-X: Busca o "Harvestable" recursivamente ignorando a pasta do estágio!
                             if plantaObj then
                                 local isMadura = plantaObj:FindFirstChild("Harvestable", true)
                                 if isMadura then
+                                    IrParaAlvo(posPlanta) -- VOA ATÉ A PLANTA ANTES DE COLHER!
                                     local payload = {
                                         dZnpyRtxna = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nsDahbvdxZludavlcoipDDMYasPlcm",
                                         player = LocalPlayer,
@@ -148,13 +177,13 @@ function Farmer:AlternarAutoFazenda(valor)
                                     pcall(function() Manager.HarvestRemote:InvokeServer(payload) end)
                                     task.wait(State.FarmSettings.HarvestDelay or 0.1)
                                 end
-                                -- Se não estiver madura, ele pula SEM NENHUM WAIT! Zero Lag!
                                 continue 
                             end
                             
                             if not blocoSolo and State.FarmSettings.PlaceGrass then
                                 local blockGrass = LocalPlayer.Backpack:FindFirstChild("grass") or (char and char:FindFirstChild("grass"))
                                 if blockGrass then
+                                    IrParaAlvo(posSolo) -- VOA ATÉ O BURACO
                                     local payload = {
                                         uwhiHAMdjExWka = "\a\240\159\164\163\240\159\164\161\a\n\a\n\a\nffEgdldU",
                                         cframe = CFrame.new(posSolo),
@@ -163,7 +192,6 @@ function Farmer:AlternarAutoFazenda(valor)
                                     }
                                     pcall(function() Manager.PlaceRemote:InvokeServer(payload) end)
                                     task.wait(0.15)
-                                    -- A Terra será detectada na próxima varredura de 1 segundo.
                                 end
                             end
 
@@ -173,12 +201,14 @@ function Farmer:AlternarAutoFazenda(valor)
                                 local terraArada = nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")
                                 
                                 if terraBruta and State.FarmSettings.PlowGrass then
+                                    IrParaAlvo(posSolo) -- VOA ATÉ A TERRA BRUTA
                                     pcall(function() Manager.PlowRemote:InvokeServer({ block = blocoSolo }) end)
                                     task.wait(0.1)
                                     terraArada = true 
                                 end
                                 
                                 if terraArada and State.FarmSettings.AutoReplace and toolEmUso then
+                                    IrParaAlvo(posPlanta) -- VOA ATÉ A TERRA ARADA
                                     local blockTypeReal = toolEmUso.Name:gsub("Seeds", ""):gsub("seeds", "")
                                     local targetCFrame = CFrame.new(posPlanta)
                                     
@@ -198,7 +228,14 @@ function Farmer:AlternarAutoFazenda(valor)
                 end
                 task.wait(1)
             end
+            
+            -- LÓGICA DE LIMPEZA: Solta o personagem quando o Bot é desligado!
             if Manager then Manager:AtualizarStatus("Auto-Fazenda Desligada") end
+            local charAtual = LocalPlayer.Character
+            if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
+                charAtual.HumanoidRootPart.Anchored = false
+            end
+            
         end)
     else
         if Manager then Manager:AtualizarStatus("Ocioso") end
