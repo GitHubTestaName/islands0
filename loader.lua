@@ -46,7 +46,7 @@ local LoadTitle = Instance.new("TextLabel", LoadFrame)
 LoadTitle.Size = UDim2.new(1, 0, 0, 30)
 LoadTitle.Position = UDim2.new(0, 0, 0, 10)
 LoadTitle.BackgroundTransparency = 1
-LoadTitle.Text = "Iniciando Islands PRO..."
+LoadTitle.Text = "A Carregar Design System..."
 LoadTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadTitle.Font = Enum.Font.SourceSansBold
 LoadTitle.TextSize = 18
@@ -81,6 +81,7 @@ local function carregarModulo(caminho)
     return moduleResult
 end
 
+-- A NOSSA NOVA ORDEM PROFISSIONAL (Carrega a Arquitetura da UI primeiro)
 local modulosParaCarregar = {
     {nome = "Manager", caminho = "src/core/Manager.lua"},
     {nome = "PlotManager", caminho = "src/core/PlotManager.lua"},
@@ -88,6 +89,10 @@ local modulosParaCarregar = {
     {nome = "Miner", caminho = "src/actions/Miner.lua"},
     {nome = "Builder", caminho = "src/actions/Builder.lua"},
     {nome = "Farmer", caminho = "src/actions/Farmer.lua"},
+    {nome = "UIComponents", caminho = "src/ui/Components.lua"},
+    {nome = "GeralTab", caminho = "src/ui/tabs/GeralTab.lua"},
+    {nome = "FazendaTab", caminho = "src/ui/tabs/FazendaTab.lua"},
+    {nome = "SistemaTab", caminho = "src/ui/tabs/SistemaTab.lua"},
     {nome = "UI", caminho = "src/ui/Window.lua"}
 }
 
