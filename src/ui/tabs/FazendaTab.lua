@@ -6,23 +6,27 @@ function FazendaTab:Construir(paginaPai)
     local State = Bot.State
     local Componentes = Bot.Modules.UIComponents
 
+    -- Garante que o contador de layout comece do zero para esta aba!
     Componentes:ResetOrder()
 
-    -- MAIN FARM
+    -- ================= BLOCO 1: MAIN FARM =================
     local cFarm, zFarm = Componentes:CriarCard("MAIN FARM", paginaPai)
+    
     Componentes:CriarToggleLargo("Start Farm", cFarm, State, "AutoFarmingCrops", zFarm, function(v) 
         if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end 
     end)
+    
     local rFarm1 = Componentes:CriarGridDupla(cFarm, zFarm)
     Componentes:CriarCheckboxMetade("Plow Grass", rFarm1, State.FarmSettings, "PlowGrass", zFarm)
     Componentes:CriarCheckboxMetade("Place Grass", rFarm1, State.FarmSettings, "PlaceGrass", zFarm)
+    
     local rFarm2 = Componentes:CriarGridDupla(cFarm, zFarm)
     Componentes:CriarCheckboxMetade("Auto Replace", rFarm2, State.FarmSettings, "AutoReplace", zFarm)
 
-    -- SEED
+    -- ================= BLOCO 2: SEED =================
     local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
     
-    -- OS DOIS DROPDOWNS COM PESQUISA ATIVADA!
+    -- O 'true' no final ativa a barra de pesquisa que criamos na última aula!
     local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
@@ -38,29 +42,34 @@ function FazendaTab:Construir(paginaPai)
         end
     end)
 
-    -- CONFIG & DELAY
+    -- ================= BLOCO 3: CONFIG & DELAY =================
     local cDelay, zDelay = Componentes:CriarCard("CONFIG & DELAY", paginaPai)
+    
     local rDelay1 = Componentes:CriarGridDupla(cDelay, zDelay)
     Componentes:CriarInputMetade("Harvest:", rDelay1, State.FarmSettings, "HarvestDelay", 0.1, zDelay)
     Componentes:CriarInputMetade("Plant:", rDelay1, State.FarmSettings, "PlantDelay", 0.15, zDelay)
+    
     local rDelay2 = Componentes:CriarGridDupla(cDelay, zDelay)
     Componentes:CriarCheckboxMetade("Tween/Voo", rDelay2, State.FarmSettings, "TweenToTarget", zDelay)
     Componentes:CriarInputMetade("Vel. Voo:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
-    local rDelay3 = Componentes:CriarGridDupla(cDelay, zDelay)
     
+    local rDelay3 = Componentes:CriarGridDupla(cDelay, zDelay)
+    -- BLINDAGEM: Verifica se o Scanner existe antes de escanear!
     Componentes:CriarCheckboxMetade("Esconder Nums", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
         if State.ScannerFazenda and type(State.ScannerFazenda.EscanearArea) == "function" then 
             State.ScannerFazenda:EscanearArea() 
         end
     end)
 
-    -- SELECTOR & SAVES
+    -- ================= BLOCO 4: SELECTOR & SAVES =================
     local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai)
+    
     Componentes:CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Verde", cSave, zSave, function() 
         if State.ScannerFazenda and type(State.ScannerFazenda.CriarSeletorFrontal) == "function" then 
             State.ScannerFazenda:CriarSeletorFrontal() 
         end 
     end)
+    
     Componentes:CriarControlesEspaciais(cSave, zSave, "ScannerFazenda")
 
     local rSaveNome = Instance.new("Frame", cSave)
@@ -71,6 +80,18 @@ function FazendaTab:Construir(paginaPai)
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNome, zSave)
     
+    -- Botão de Salvar concatenado e ajustado
+    local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
+    btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
+    btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
+    btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
+    btnSavePlotFazenda.Text = "💾 Salvar"
+    btnSavePlotFazenda.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btnSavePlotFazenda.Font = Enum.Font.SourceSansBold
+    btnSavePlotFazenda.TextSize = 13
+    btnSavePlotFazenda.ZIndex = zSave + 3
+    Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
+
     local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave, false)
 
     local function AtualizarListaSavesFazenda()
@@ -87,7 +108,7 @@ function FazendaTab:Construir(paginaPai)
         end
     end
 
-    local btnSavePlotFazenda = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNome, zSave, function()
+    btnSavePlotFazenda.MouseButton1Click:Connect(function()
         local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
         if inputPlotFazenda.Text ~= "" and cubo then
             Bot.Modules.PlotManager:SalvarPlot("Farming_" .. inputPlotFazenda.Text, cubo.Position, cubo.Size)
@@ -95,10 +116,6 @@ function FazendaTab:Construir(paginaPai)
             inputPlotFazenda.Text = ""
         end
     end)
-    
-    btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
-    btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
-    btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
 
     local rAcoesF = Componentes:CriarGridTripla(cSave, zSave)
     Componentes:CriarBotaoPequeno("Load", Color3.fromRGB(40, 150, 80), rAcoesF, zSave, function()
@@ -127,8 +144,9 @@ function FazendaTab:Construir(paginaPai)
     local rSave2F = Componentes:CriarGridDupla(cSave, zSave)
     Componentes:CriarCheckboxMetade("Auto Load Start", rSave2F, State.FarmSettings, "AutoUseSelectedSave", zSave)
 
+    -- CARREGAMENTO SEGURO
     task.spawn(function()
-        task.wait(1)
+        task.wait(1.5) -- Espera a UI respirar para não sobrecarregar
         pcall(function() AtualizarListaSavesFazenda() end)
         if Bot.Modules.Manager then
             pcall(function()
