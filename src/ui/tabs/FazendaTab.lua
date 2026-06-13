@@ -19,10 +19,13 @@ function FazendaTab:Construir(paginaPai)
     local rFarm2 = Componentes:CriarGridDupla(cFarm, zFarm)
     Componentes:CriarCheckboxMetade("Auto Replace", rFarm2, State.FarmSettings, "AutoReplace", zFarm)
 
-    -- SEED SELECT
-    local cSeed, zSeed = Componentes:CriarCard("SEED SELECT", paginaPai)
-    local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, false)
+    -- SEED
+    local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
+    
+    -- AQUI ESTÁ A MUDANÇA DA PESQUISA: O último parâmetro é 'true'!
+    local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
+    
     Componentes:CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
         if Bot.Modules.Manager then 
             pcall(function()
@@ -47,7 +50,7 @@ function FazendaTab:Construir(paginaPai)
         if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
     end)
 
-    -- SELECTOR & SAVES
+    -- SELECTOR & SAVES (Restaurado e Completo!)
     local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai)
     Componentes:CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Verde", cSave, zSave, function() 
         if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
@@ -78,8 +81,6 @@ function FazendaTab:Construir(paginaPai)
         end
     end
 
-    -- EXCELENTE EXEMPLO DE CONCATENAÇÃO DE ESTILOS!
-    -- Criamos o botão com a nossa fábrica, e depois alteramos apenas o que nos interessa!
     local btnSavePlotFazenda = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNome, zSave, function()
         local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
         if inputPlotFazenda.Text ~= "" and cubo then
@@ -89,7 +90,7 @@ function FazendaTab:Construir(paginaPai)
         end
     end)
     
-    -- Aqui eu sobrescrevo (concateno) as propriedades visuais
+    -- Concatenando o estilo do Botão de Save para ficar ao lado da caixa de texto
     btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
     btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
     btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220)
