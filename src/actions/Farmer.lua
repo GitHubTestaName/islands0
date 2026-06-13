@@ -14,7 +14,7 @@ local function IrParaAlvo(alvoPos)
     if not hrp then return end
 
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 12 then
+    if dist > 13 then -- Aumentei ligeiramente o limite seguro para evitar paradas bruscas
         hrp.Anchored = true
         local speed = State.FarmSettings.TweenSpeed or 20
         local tempo = dist / speed
@@ -67,7 +67,6 @@ function Farmer:AlternarAutoFazenda(valor)
         if State.FarmSettings.AutoUseSelectedSave and State.FarmSettings.CurrentSaveName then
             local PlotManager = Bot.Modules.PlotManager
             local plots = PlotManager:ObterTodos()
-            -- LÊ O PREFIXO CORRETO!
             local plot = plots["Farming_" .. State.FarmSettings.CurrentSaveName]
             if plot and State.ScannerFazenda then
                 State.ScannerFazenda:CarregarPlot(Vector3.new(plot.PosX, plot.PosY, plot.PosZ), Vector3.new(plot.SizeX, plot.SizeY, plot.SizeZ))
@@ -143,11 +142,21 @@ function Farmer:AlternarAutoFazenda(valor)
                 local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
 
-                for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
+                -- A MAGIA DO ZIG-ZAG (SNAKE PATH) ACONTECE AQUI
+                local zDirection = 1 
+
+                for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
                     if not State.AutoFarmingCrops then break end
-                    for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
+                    
+                    for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
                         if not State.AutoFarmingCrops then break end
-                        for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
+                        
+                        -- Define o ponto de partida e de chegada do eixo Z baseado na direção atual
+                        local startZ = (zDirection == 1) and (minCoord.Z + Config.BLOCK_SIZE/2) or maxCoord.Z
+                        local endZ = (zDirection == 1) and maxCoord.Z or (minCoord.Z + Config.BLOCK_SIZE/2)
+                        local stepZ = (zDirection == 1) and Config.BLOCK_SIZE or -Config.BLOCK_SIZE
+
+                        for z = startZ, endZ, stepZ do
                             if not State.AutoFarmingCrops then break end
                             
                             local posPlanta = Vector3.new(x, y, z)
@@ -218,6 +227,8 @@ function Farmer:AlternarAutoFazenda(valor)
                             end
 
                         end
+                        -- Inverte a direção no final de cada fileira para fazer a cobra (Zig-Zag)
+                        zDirection = zDirection * -1
                     end
                 end
                 task.wait(1)

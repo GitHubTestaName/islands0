@@ -26,7 +26,6 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 State.HideKey = Enum.KeyCode.V
 State.IsListeningForKey = false
 
--- SISTEMA DA HOTKEY À PROVA DE BALAS
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if State.IsListeningForKey then
         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -34,7 +33,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             State.IsListeningForKey = false
             if State.UpdateKeybindButton then State.UpdateKeybindButton() end
         end
-        return -- Bloqueia a ação nativa para capturar com segurança
+        return 
     end
     
     if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == State.HideKey then
@@ -157,8 +156,6 @@ local function CriarAba(nome, id)
     pg.BorderSizePixel = 0
     pg.ScrollBarThickness = 5
     pg.Visible = false
-    
-    -- A SOLUÇÃO DO SCROLL: ClipsDescendants TRUE, com o Padding muito profundo para os Dropdowns caberem!
     pg.ClipsDescendants = true
     
     local layout = Instance.new("UIListLayout", pg)
@@ -172,7 +169,7 @@ local function CriarAba(nome, id)
     local padding = Instance.new("UIPadding", pg)
     padding.PaddingLeft = UDim.new(0, 10)
     padding.PaddingTop = UDim.new(0, 10)
-    padding.PaddingBottom = UDim.new(0, 250) -- Espaço colossal invisível no final!
+    padding.PaddingBottom = UDim.new(0, 250) 
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 250)
@@ -383,12 +380,14 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     end)
 end
 
-local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, zBase)
+-- ================= DROPDOWN AVANÇADO (COM BARRA DE PESQUISA) =================
+local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, zBase, hasSearch)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
     frame.LayoutOrder = GetOrdem()
     frame.ZIndex = zBase
+    
     local mainBtn = Instance.new("TextButton", frame)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
     mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -400,6 +399,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     mainBtn.BorderSizePixel = 0
     mainBtn.ZIndex = zBase + 1
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
+    
     local icone = Instance.new("TextLabel", mainBtn)
     icone.Size = UDim2.new(0, 20, 1, 0)
     icone.Position = UDim2.new(1, -25, 0, 0)
@@ -408,31 +408,59 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     icone.TextColor3 = Color3.fromRGB(200, 200, 200)
     icone.ZIndex = zBase + 1
     
-    local scroll = Instance.new("ScrollingFrame", frame)
-    scroll.Size = UDim2.new(1, 0, 0, 150)
-    scroll.Position = UDim2.new(0, 0, 1, 3)
-    scroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    local dropdownContainer = Instance.new("Frame", frame)
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 180)
+    dropdownContainer.Position = UDim2.new(0, 0, 1, 3)
+    dropdownContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    dropdownContainer.BorderSizePixel = 0
+    dropdownContainer.Visible = false
+    dropdownContainer.ZIndex = zBase + 10
+    Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 4)
+    
+    local searchBox = nil
+    local yOffsetScroll = 0
+    if hasSearch then
+        searchBox = Instance.new("TextBox", dropdownContainer)
+        searchBox.Size = UDim2.new(1, -10, 0, 25)
+        searchBox.Position = UDim2.new(0, 5, 0, 5)
+        searchBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        searchBox.PlaceholderText = "Pesquisar..."
+        searchBox.Text = ""
+        searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        searchBox.Font = Enum.Font.SourceSans
+        searchBox.TextSize = 13
+        searchBox.ZIndex = zBase + 11
+        Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
+        yOffsetScroll = 35
+    end
+    
+    local scroll = Instance.new("ScrollingFrame", dropdownContainer)
+    scroll.Size = UDim2.new(1, 0, 1, -yOffsetScroll)
+    scroll.Position = UDim2.new(0, 0, 0, yOffsetScroll)
+    scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
-    scroll.Visible = false
-    scroll.ZIndex = zBase + 10
+    scroll.ZIndex = zBase + 11
     scroll.ScrollBarThickness = 5
-    Instance.new("UICorner", scroll).CornerRadius = UDim.new(0, 4)
     Instance.new("UIListLayout", scroll).SortOrder = Enum.SortOrder.LayoutOrder
     
-    mainBtn.MouseButton1Click:Connect(function() scroll.Visible = not scroll.Visible end)
+    mainBtn.MouseButton1Click:Connect(function() 
+        dropdownContainer.Visible = not dropdownContainer.Visible 
+        if searchBox and dropdownContainer.Visible then searchBox.Text = "" end
+    end)
     
     if isMulti and not stateTable[stateKey] then stateTable[stateKey] = {["All"] = true} end
     
     local dropdownObj = {}
+    local todosBotoes = {}
+    
     function dropdownObj:Refresh(listaItems)
         for _, old in ipairs(scroll:GetChildren()) do if old:IsA("TextButton") then old:Destroy() end end
+        todosBotoes = {}
         
-        local hTotal = 0
         local itemsToRender = {}
         if isMulti then table.insert(itemsToRender, "All") end
         for _, item in ipairs(listaItems) do table.insert(itemsToRender, item) end
         
-        local botoesCriados = {}
         local function atualizarMainText()
             if isMulti then
                 if stateTable[stateKey]["All"] then mainBtn.Text = "  " .. labelTexto .. ": All"
@@ -456,9 +484,9 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
             itemBtn.Font = Enum.Font.SourceSans
             itemBtn.TextSize = 13
             itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-            itemBtn.ZIndex = zBase + 11
-            table.insert(botoesCriados, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
-            hTotal = hTotal + 30
+            itemBtn.ZIndex = zBase + 12
+            
+            table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
             
             local function applyVisual()
                 if isMulti then
@@ -480,7 +508,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
                         stateTable[stateKey]["All"] = nil
                         stateTable[stateKey][itemNome] = not stateTable[stateKey][itemNome]
                     end
-                    for _, obj in ipairs(botoesCriados) do
+                    for _, obj in ipairs(todosBotoes) do
                         if stateTable[stateKey][obj.nome] then
                             obj.btn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
                             obj.btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -493,11 +521,27 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
                 else
                     stateTable[stateKey] = itemNome
                     atualizarMainText()
-                    scroll.Visible = false
+                    dropdownContainer.Visible = false
                 end
             end)
         end
-        scroll.CanvasSize = UDim2.new(0, 0, 0, hTotal)
+        
+        local function renderizarBusca()
+            local termo = searchBox and searchBox.Text:lower() or ""
+            local hTotal = 0
+            for _, obj in ipairs(todosBotoes) do
+                if termo == "" or obj.nome:lower():match(termo) then
+                    obj.btn.Visible = true
+                    hTotal = hTotal + 30
+                else
+                    obj.btn.Visible = false
+                end
+            end
+            scroll.CanvasSize = UDim2.new(0, 0, 0, hTotal)
+        end
+        
+        if searchBox then searchBox:GetPropertyChangedSignal("Text"):Connect(renderizarBusca) end
+        renderizarBusca()
         atualizarMainText()
     end
     return dropdownObj
@@ -572,13 +616,14 @@ local rFarm2 = CriarGridDupla(cFarm, zFarm)
 CriarCheckboxMetade("Auto Replace", rFarm2, State.FarmSettings, "AutoReplace", zFarm)
 
 local cSeed, zSeed = CriarCard("SEED SELECT", p3, 90) 
-local DropdownSementes = CriarDropdown("Lista Sementes", cSeed, State, "SementeSelecionada", true, 95)
-local PriorizeDropdown = CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, 90)
+local DropdownSementes = CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, 95, false)
+-- PRIORIZE AGORA TEM HASSEARCH = TRUE!
+local PriorizeDropdown = CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, 90, true)
 CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, 90, function()
     if Bot.Modules.Manager then 
         local inv = Bot.Modules.Manager:GetInventoryTools("Seed")
         DropdownSementes:Refresh(inv)
-        PriorizeDropdown:Refresh(inv)
+        -- PriorizeDropdown nao é atualizado pela mochila, ele é global (preenchido no fim do script)
     end
 end)
 
@@ -590,7 +635,6 @@ local rDelay2 = CriarGridDupla(cDelay, zDelay)
 CriarCheckboxMetade("Tween/Voo", rDelay2, State.FarmSettings, "TweenToTarget", zDelay)
 CriarInputMetade("Vel. Voo:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
 local rDelay3 = CriarGridDupla(cDelay, zDelay)
--- BIND DA CAIXINHA AO SELETOR CORRETO
 CriarCheckboxMetade("Esconder Nums", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
     if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
 end)
@@ -627,9 +671,8 @@ btnSavePlotFazenda.TextSize = 13
 btnSavePlotFazenda.ZIndex = zSave + 1
 Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
 
-local plotDropdownFazenda = CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5)
+local plotDropdownFazenda = CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave - 5, false)
 
--- FILTRO EXCLUSIVO DE "Farming_"
 local function AtualizarListaSavesFazenda()
     if Bot.Modules.PlotManager and plotDropdownFazenda then
         local plots = Bot.Modules.PlotManager:ObterTodos()
@@ -685,15 +728,15 @@ CriarAcaoBotao("Delete", Color3.fromRGB(200, 50, 50), rAcoesF, zSave, function()
         AtualizarListaSavesFazenda()
     end
 end)
-
 local rSave2F = CriarGridDupla(cSave, zSave)
 CriarCheckboxMetade("Auto Load Start", rSave2F, State.FarmSettings, "AutoUseSelectedSave", zSave)
 
--- ================= ABA 1: GERAL (COM NOVO MINING SYSTEM) =================
+
+-- ================= ABA 1: GERAL (MINER) =================
 local p1 = Paginas["seletor"]
 local cMiner, zMiner = CriarCard("MINER & BUILDER", p1, 100)
 CriarToggleLargo("⛏️ Auto Minerar", cMiner, State, "Minerando", zMiner, function(v) if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end end)
-local DropdownBlocos = CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, 95)
+local DropdownBlocos = CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, 95, false)
 CriarBotaoEstilizado("🔄 Carregar Mochila", cMiner, zMiner, function() if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end end)
 CriarBotaoEstilizado("🔨 Preencher Área do Seletor", cMiner, zMiner, function() if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end end)
 
@@ -702,7 +745,6 @@ local rMinerDelay1 = CriarGridDupla(cMinerCfg, zMinerCfg)
 CriarCheckboxMetade("Tween/Voo", rMinerDelay1, State.MiningSettings, "TweenToTarget", zMinerCfg)
 CriarInputMetade("Vel. Voo:", rMinerDelay1, State.MiningSettings, "TweenSpeed", 20, zMinerCfg)
 local rMinerDelay2 = CriarGridDupla(cMinerCfg, zMinerCfg)
--- BIND DA CAIXINHA AO SELETOR CORRETO
 CriarCheckboxMetade("Esconder Nums", rMinerDelay2, State.ScannerGeral, "HideNumbers", zMinerCfg, function()
     if State.ScannerGeral then State.ScannerGeral:EscanearArea() end
 end)
@@ -739,9 +781,8 @@ btnSavePlotMining.TextSize = 13
 btnSavePlotMining.ZIndex = zSelAzul + 1
 Instance.new("UICorner", btnSavePlotMining).CornerRadius = UDim.new(0, 4)
 
-local plotDropdownMining = CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul - 5)
+local plotDropdownMining = CriarDropdown("Selecionar Save", cSelAzul, State.MiningSettings, "CurrentSaveName", false, zSelAzul - 5, false)
 
--- FILTRO EXCLUSIVO DE "Mining_"
 local function AtualizarListaSavesMining()
     if Bot.Modules.PlotManager and plotDropdownMining then
         local plots = Bot.Modules.PlotManager:ObterTodos()
@@ -784,11 +825,8 @@ CriarAcaoBotao("Delete", Color3.fromRGB(200, 50, 50), rAcoesM, zSelAzul, functio
         AtualizarListaSavesMining()
     end
 end)
-
 local rSave2M = CriarGridDupla(cSelAzul, zSelAzul)
 CriarCheckboxMetade("Auto Load Start", rSave2M, State.MiningSettings, "AutoUseSelectedSave", zSelAzul)
-
-task.spawn(function() task.wait(1); AtualizarListaSavesFazenda(); AtualizarListaSavesMining() end)
 
 -- ================= ABA 4: SISTEMA =================
 local p4 = Paginas["sistema"]
@@ -811,6 +849,17 @@ CriarBotaoEstilizado("❌ Fechar Bot de Forma Segura", cSys, zSys, function()
     if State.ScannerGeral then State.ScannerGeral:LimparAncora() end
     if State.ScannerFazenda then State.ScannerFazenda:LimparAncora() end
     ScreenGui:Destroy()
+end)
+
+-- PREENCHE OS DADOS GLOBAIS ASSIM QUE A INTERFACE TERMINA DE RENDERIZAR
+task.spawn(function() 
+    task.wait(1)
+    AtualizarListaSavesFazenda()
+    AtualizarListaSavesMining()
+    if Bot.Modules.Manager then
+        local sementesGlobais = Bot.Modules.Manager:GetAllSeedsInGame()
+        PriorizeDropdown:Refresh(sementesGlobais)
+    end
 end)
 
 return UI

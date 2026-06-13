@@ -1,99 +1,77 @@
 -- src/core/Manager.lua
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Manager = {}
 
-local Bot = _G.IslandsBot
-local State = Bot.State
-
-local NetManaged = ReplicatedStorage:WaitForChild("rbxts_include"):WaitForChild("node_modules"):WaitForChild("@rbxts"):WaitForChild("net"):WaitForChild("out"):WaitForChild("_NetManaged")
-Manager.HitRemote = NetManaged:WaitForChild("CLIENT_BLOCK_HIT_REQUEST")
-Manager.PlaceRemote = NetManaged:WaitForChild("CLIENT_BLOCK_PLACE_REQUEST")
-Manager.PlowRemote = NetManaged:WaitForChild("CLIENT_PLOW_BLOCK_REQUEST")
-Manager.HarvestRemote = NetManaged:WaitForChild("CLIENT_HARVEST_CROP_REQUEST")
-
-Manager.Queue = {}
-Manager.IsProcessing = false
-
-function Manager:AtualizarStatus(texto)
-    State.Status = texto
-    if Bot.Modules.UI and Bot.Modules.UI.SetStatusText then
-        Bot.Modules.UI:SetStatusText(texto)
+function Manager:ObterBlocoRaiz(part)
+    if not part then return nil end
+    local atual = part
+    while atual and atual ~= workspace and atual.Name ~= "Blocks" do
+        if atual:IsA("Model") and atual.PrimaryPart then return atual end
+        if atual:IsA("BasePart") and atual.Name ~= "Trunk" and atual.Name ~= "Top" and atual.Parent.Name == "Blocks" then
+            return atual
+        end
+        atual = atual.Parent
     end
+    return part:IsA("BasePart") and part or nil
 end
 
-function Manager:GetInventoryTools(filterType)
-    local ferramentas = {}
-    local guardadas = {}
-    local LocalPlayer = Players.LocalPlayer
-    
-    local function analisarItem(obj)
-        if obj:IsA("Tool") and not guardadas[obj.Name] then
-            local eBloco = obj:FindFirstChild("block-place") ~= nil
-            local eSemente = obj:FindFirstChild("seeds") ~= nil
-            
-            if filterType == "Block" and eBloco then
-                table.insert(ferramentas, obj.Name)
-            elseif filterType == "Seed" and eSemente then
-                table.insert(ferramentas, obj.Name)
-            elseif filterType == "All" then
-                table.insert(ferramentas, obj.Name)
+function Manager:GetInventoryTools(filtroTipo)
+    local player = Players.LocalPlayer
+    local toolsEncontradas = {}
+    local itensProcessados = {}
+
+    local function processarItem(item)
+        if item:IsA("Tool") and not itensProcessados[item.Name] then
+            if filtroTipo == "Block" and (item.Name:match("Block") or item:FindFirstChild("block-meta")) then
+                table.insert(toolsEncontradas, item.Name)
+                itensProcessados[item.Name] = true
+            elseif filtroTipo == "Seed" and (item.Name:lower():match("seed") or item:FindFirstChild("cropSeed")) then
+                table.insert(toolsEncontradas, item.Name)
+                itensProcessados[item.Name] = true
             end
-            guardadas[obj.Name] = true
+        end
+    end
+
+    if player.Character then
+        for _, item in ipairs(player.Character:GetChildren()) do processarItem(item) end
+    end
+    for _, item in ipairs(player.Backpack:GetChildren()) do processarItem(item) end
+
+    table.sort(toolsEncontradas)
+    return #toolsEncontradas > 0 and toolsEncontradas or {"Nenhum item encontrado"}
+end
+
+-- NOVA FUNÇÃO: Pega TODAS as sementes do jogo direto dos arquivos do desenvolvedor!
+function Manager:GetAllSeedsInGame()
+    local allSeeds = {}
+    local rsTools = ReplicatedStorage:FindFirstChild("Tools")
+    
+    if rsTools then
+        for _, tool in ipairs(rsTools:GetChildren()) do
+            if tool:IsA("Tool") or tool:IsA("Folder") then
+                -- Checa se o nome termina com "Seeds" ou se tem o script característico
+                if tool.Name:match("Seeds$") or tool.Name:match("seeds$") or tool:FindFirstChild("cropSeed") then
+                    table.insert(allSeeds, tool.Name)
+                end
+            end
         end
     end
     
-    for _, obj in pairs(LocalPlayer.Backpack:GetChildren()) do analisarItem(obj) end
-    if LocalPlayer.Character then
-        for _, obj in pairs(LocalPlayer.Character:GetChildren()) do analisarItem(obj) end
-    end
-    
-    if #ferramentas == 0 then return {"Nenhum item encontrado"} end
-    return ferramentas
+    table.sort(allSeeds)
+    return #allSeeds > 0 and allSeeds or {"WheatSeeds"} -- Fallback seguro
 end
 
-function Manager:AdicionarFila(actionFunc)
-    table.insert(self.Queue, actionFunc)
-    if not self.IsProcessing then self:ProcessarProximo() end
+function Manager:AtualizarStatus(mensagem)
+    local UI = _G.IslandsBot.Modules.UI
+    if UI and UI.SetStatusText then UI:SetStatusText(mensagem) end
 end
 
-function Manager:ProcessarProximo()
-    if #self.Queue == 0 then
-        self.IsProcessing = false
-        self:AtualizarStatus("Ocioso")
-        return
-    end
-    self.IsProcessing = true
-    local tarefa = table.remove(self.Queue, 1)
-
-    task.spawn(function()
-        pcall(tarefa)
-        self:ProcessarProximo()
-    end)
-end
-
-function Manager:ObterBlocoRaiz(hitInstance)
-    if not hitInstance then return nil end
-    
-    -- IGNORA O CHAPÉU DA GRAMA: Transfere o foco para o bloco real (o Pai)
-    if hitInstance:IsA("MeshPart") and hitInstance.Name:lower() == "top" then
-        hitInstance = hitInstance.Parent
-    end
-
-    -- DETECÇÃO DA ÁRVORE:
-    local pastaColisao = hitInstance:FindFirstAncestor("CollisionBoxes")
-    if pastaColisao and pastaColisao.Parent then
-        return pastaColisao.Parent 
-    end
-    
-    local current = hitInstance
-    while current and current.Parent do
-        if current.Parent.Name == "Blocks" then
-            return current
-        end
-        current = current.Parent
-    end
-    return hitInstance
-end
+-- Mapeamento dos Remotes
+local network = ReplicatedStorage:WaitForChild("rbxts_include"):WaitForChild("node_modules"):WaitForChild("@rbxts"):WaitForChild("net"):WaitForChild("out"):WaitForChild("_NetManaged")
+Manager.HitRemote = network:WaitForChild("CLIENT_BLOCK_HIT_REQUEST")
+Manager.PlaceRemote = network:WaitForChild("CLIENT_BLOCK_PLACE_REQUEST")
+Manager.PlowRemote = network:WaitForChild("CLIENT_PLOW_BLOCK_REQUEST")
+Manager.HarvestRemote = network:WaitForChild("CLIENT_HARVEST_CROP_REQUEST")
 
 return Manager
