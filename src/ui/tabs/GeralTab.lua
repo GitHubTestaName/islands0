@@ -13,10 +13,12 @@ function GeralTab:Construir(paginaPai)
     Componentes:CriarToggleLargo("⛏️ Auto Minerar", cMiner, State, "Minerando", zMiner, function(v) 
         if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end 
     end)
-    local DropdownBlocos = Componentes:CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, zMiner, false)
+    
+    -- AQUI ESTÁ A MUDANÇA: O último parâmetro agora é 'true', ativando o painel de Pesquisa!
+    local DropdownBlocos = Componentes:CriarDropdown("Material de Construção", cMiner, State, "BlocoSelecionado", false, zMiner, true)
+    
     Componentes:CriarBotaoEstilizado("🔄 Carregar Mochila", cMiner, zMiner, function() 
         if Bot.Modules.Manager then 
-            -- AQUI É A CHAMADA CORRETA PARA BLOCOS DA SUA MOCHILA
             local blocos = Bot.Modules.Manager:GetInventoryTools("Block")
             DropdownBlocos:Refresh(blocos) 
         end 

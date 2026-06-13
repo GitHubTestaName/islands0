@@ -1,6 +1,7 @@
 -- src/ui/Components.lua
 local Components = {}
 
+-- ================= VARIÁVEIS DE TEMA (DESIGN SYSTEM) =================
 Components.Theme = {
     CardBG = Color3.fromRGB(32, 32, 32),
     CardStroke = Color3.fromRGB(60, 60, 60),
@@ -12,7 +13,8 @@ Components.Theme = {
     TextWhite = Color3.fromRGB(255, 255, 255),
     TextDimmed = Color3.fromRGB(200, 200, 200),
     InputBG = Color3.fromRGB(20, 20, 20),
-    PanelBG = Color3.fromRGB(45, 45, 45)
+    PanelBG = Color3.fromRGB(45, 45, 45),
+    DropdownBG = Color3.fromRGB(25, 25, 25) -- Cor especial para o fundo das listas
 }
 
 Components.layoutOrderGlobal = 0
@@ -35,6 +37,8 @@ function Components:GetInnerOrder()
     self.innerOrderGlobal = self.innerOrderGlobal + 1 
     return self.innerOrderGlobal 
 end
+
+-- ================= CONSTRUTORES DE INTERFACE =================
 
 function Components:CriarCard(titulo, parent)
     local order, baseZ = self:GetOrdem()
@@ -260,7 +264,31 @@ function Components:CriarInputLargo(placeholder, parentRow, cardZBase)
     return input
 end
 
--- ================= O DROPDOWN BLINDADO E CORRIGIDO =================
+-- ================= O MOLDE SUPER SUAVE E BONITINHO =================
+function Components:CriarItemDropdown(texto, parent, zIndexBase)
+    local itemBtn = Instance.new("TextButton", parent)
+    itemBtn.Size = UDim2.new(1, 0, 0, 32)
+    itemBtn.BackgroundColor3 = Components.Theme.PanelBG -- Fundo consistente (Sem listras)
+    itemBtn.BorderSizePixel = 0
+    itemBtn.Text = texto
+    itemBtn.TextColor3 = Components.Theme.TextWhite
+    itemBtn.Font = Enum.Font.SourceSansSemibold
+    itemBtn.TextSize = 13
+    itemBtn.TextXAlignment = Enum.TextXAlignment.Left
+    itemBtn.ZIndex = zIndexBase
+    itemBtn.AutoButtonColor = true -- Dá aquele brilhinho nativo ao clicar
+
+    -- As bordas redondinhas para cada item
+    Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 6)
+
+    -- O espaçamento interno (Padding) para a palavra não colar na borda esquerda!
+    local pad = Instance.new("UIPadding", itemBtn)
+    pad.PaddingLeft = UDim.new(0, 10)
+    pad.PaddingRight = UDim.new(0, 10)
+
+    return itemBtn
+end
+
 function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
@@ -291,30 +319,43 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     local dropdownContainer = Instance.new("TextButton", frame)
     dropdownContainer.Text = ""
     dropdownContainer.AutoButtonColor = false
-    dropdownContainer.Size = UDim2.new(1, 0, 0, 180)
-    dropdownContainer.Position = UDim2.new(0, 0, 1, 3)
-    dropdownContainer.BackgroundColor3 = self.Theme.InputBG
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 210)
+    dropdownContainer.Position = UDim2.new(0, 0, 1, 4)
+    dropdownContainer.BackgroundColor3 = self.Theme.DropdownBG
     dropdownContainer.BorderSizePixel = 0
     dropdownContainer.Visible = false
     dropdownContainer.ZIndex = cardZBase + 10 
     dropdownContainer.Active = true 
-    Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 6)
+
+    -- Borda de destaque para a caixa do dropdown não se misturar com o fundo
+    local dropStroke = Instance.new("UIStroke", dropdownContainer)
+    dropStroke.Color = Color3.fromRGB(80, 80, 80)
+    dropStroke.Thickness = 1
     
     local searchBox = nil
     local yOffsetScroll = 0
+
     if hasSearch then
         searchBox = Instance.new("TextBox", dropdownContainer)
-        searchBox.Size = UDim2.new(1, -10, 0, 25)
-        searchBox.Position = UDim2.new(0, 5, 0, 5)
-        searchBox.BackgroundColor3 = self.Theme.PanelBG
+        searchBox.Size = UDim2.new(1, -12, 0, 30)
+        searchBox.Position = UDim2.new(0, 6, 0, 6)
+        searchBox.BackgroundColor3 = self.Theme.InputBG
         searchBox.PlaceholderText = "Pesquisar..."
         searchBox.Text = ""
-        searchBox.TextColor3 = self.Theme.TextWhite
-        searchBox.Font = Enum.Font.SourceSans
+        searchBox.TextColor3 = self.Theme.AccentBlue
+        searchBox.Font = Enum.Font.SourceSansSemibold
         searchBox.TextSize = 13
+        searchBox.TextXAlignment = Enum.TextXAlignment.Left
         searchBox.ZIndex = cardZBase + 11
         Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
-        yOffsetScroll = 35
+        
+        -- Padding para o texto de pesquisa não colar na borda
+        local sPad = Instance.new("UIPadding", searchBox)
+        sPad.PaddingLeft = UDim.new(0, 10)
+        
+        -- Empurra a lista de itens para baixo para dar espaço à barra de pesquisa
+        yOffsetScroll = 40 
     end
     
     local scroll = Instance.new("ScrollingFrame", dropdownContainer)
@@ -323,9 +364,22 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
     scroll.ZIndex = cardZBase + 11
-    scroll.ScrollBarThickness = 5
-    scroll.Active = true
-    Instance.new("UIListLayout", scroll).SortOrder = Enum.SortOrder.LayoutOrder
+    scroll.ScrollBarThickness = 4
+    scroll.ScrollBarImageColor3 = self.Theme.AccentBlue
+    scroll.Active = true 
+
+    -- O Layout com o espaçamento (Gap) entre os itens
+    local listLayout = Instance.new("UIListLayout", scroll)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Padding = UDim.new(0, 5) -- Esse é o espaço "suave" entre cada botão
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    -- O Padding geral da lista (para os botões não baterem na barra de scroll)
+    local scrollPad = Instance.new("UIPadding", scroll)
+    scrollPad.PaddingTop = UDim.new(0, 5)
+    scrollPad.PaddingBottom = UDim.new(0, 5)
+    scrollPad.PaddingLeft = UDim.new(0, 5)
+    scrollPad.PaddingRight = UDim.new(0, 5)
     
     mainBtn.MouseButton1Click:Connect(function() 
         dropdownContainer.Visible = not dropdownContainer.Visible 
@@ -345,8 +399,13 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         
         local itemsToRender = {}
         if isMulti then table.insert(itemsToRender, "All") end
-        for _, item in ipairs(listaItems) do table.insert(itemsToRender, item) end
         
+        for _, item in ipairs(listaItems) do 
+            if item ~= "Nenhuma Ferramenta Equipada" and item ~= "Ainda não carregou / Vazio" then
+                table.insert(itemsToRender, item) 
+            end
+        end
+
         if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then
             table.insert(itemsToRender, "Nenhum Encontrado")
         end
@@ -364,19 +423,9 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
             end
         end
         
-        -- AQUI ESTÁ A CORREÇÃO: CRIA O BOTÃO DIRETAMENTE AQUI SEM USAR O SELF.
-        -- O "Components.Theme" garante que não vai crachar.
-        for i, itemNome in ipairs(itemsToRender) do
-            local itemBtn = Instance.new("TextButton", scroll)
-            itemBtn.Size = UDim2.new(1, 0, 0, 30)
-            itemBtn.BackgroundColor3 = (i%2==0) and Components.Theme.PanelBG or Components.Theme.CardBG
-            itemBtn.BorderSizePixel = 0
-            itemBtn.Text = "   " .. itemNome
-            itemBtn.TextColor3 = Components.Theme.TextWhite
-            itemBtn.Font = Enum.Font.SourceSans
-            itemBtn.TextSize = 13
-            itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-            itemBtn.ZIndex = cardZBase + 12
+        for _, itemNome in ipairs(itemsToRender) do
+            -- Chama o novo molde SUPER SUAVE e BONITINHO sem a zebra (isPar)
+            local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 12)
             
             table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
             
@@ -384,10 +433,8 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                 if isMulti then
                     if stateTable[stateKey][itemNome] then
                         itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
-                        itemBtn.TextColor3 = Components.Theme.TextWhite
                     else
                         itemBtn.BackgroundColor3 = itemBtn.bg
-                        itemBtn.TextColor3 = Components.Theme.TextWhite
                     end
                 end
             end
@@ -420,16 +467,19 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         
         local function renderizarBusca()
             local termo = searchBox and searchBox.Text:lower() or ""
-            local hTotal = 0
+            local count = 0
             for _, obj in ipairs(todosBotoes) do
                 if termo == "" or obj.nome:lower():match(termo) then
                     obj.btn.Visible = true
-                    hTotal = hTotal + 30
+                    count = count + 1
                 else
                     obj.btn.Visible = false
                 end
             end
-            scroll.CanvasSize = UDim2.new(0, 0, 0, hTotal)
+            
+            -- A Matemática perfeita: Tamanho do item (32) + Gap (5) + Padding (10)
+            local alturaNecessaria = (count * 32) + (math.max(0, count - 1) * 5) + 10
+            scroll.CanvasSize = UDim2.new(0, 0, 0, alturaNecessaria)
         end
         
         if searchBox then searchBox:GetPropertyChangedSignal("Text"):Connect(renderizarBusca) end
@@ -441,6 +491,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     return dropdownObj
 end
 
+-- [... MANTÉM A FUNÇÃO CriarControlesEspaciais EXATAMENTE COMO ESTAVA NO FIM DO FICHEIRO ...]
 function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     local Bot = _G.IslandsBot
     local State = Bot.State
