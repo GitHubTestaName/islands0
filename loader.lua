@@ -81,11 +81,11 @@ local function carregarModulo(caminho)
     return moduleResult
 end
 
--- A NOSSA NOVA ORDEM PROFISSIONAL (Carrega a Arquitetura da UI primeiro)
 local modulosParaCarregar = {
     {nome = "Manager", caminho = "src/core/Manager.lua"},
     {nome = "PlotManager", caminho = "src/core/PlotManager.lua"},
     {nome = "Scanner", caminho = "src/core/Scanner.lua"},
+    {nome = "Navigator", caminho = "src/core/Navigator.lua"}, -- NOVO: O NOSSO PILOTO!
     {nome = "Miner", caminho = "src/actions/Miner.lua"},
     {nome = "Builder", caminho = "src/actions/Builder.lua"},
     {nome = "Farmer", caminho = "src/actions/Farmer.lua"},
