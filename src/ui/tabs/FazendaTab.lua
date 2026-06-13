@@ -25,17 +25,19 @@ function FazendaTab:Construir(paginaPai)
     -- ================= BLOCO 2: SEED =================
     local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
     
+    -- Dropdowns com a pesquisa ativada (o "true" no final)
     local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
     Componentes:CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
         if Bot.Modules.Manager then 
-            -- PCALL REMOVIDO! Atualização direta e transparente
-            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-            DropdownSementes:Refresh(sementesPessoais)
-            
-            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-            PriorizeDropdown:Refresh(sementesGerais)
+            pcall(function()
+                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+                DropdownSementes:Refresh(sementesPessoais)
+                
+                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+                PriorizeDropdown:Refresh(sementesGerais)
+            end)
         end
     end)
 
@@ -76,6 +78,7 @@ function FazendaTab:Construir(paginaPai)
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNome, zSave)
     
+    -- Botão Salvar (com as propriedades arrumadas localmente para não dar problema no Z-Index)
     local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
     btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
     btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
@@ -87,17 +90,19 @@ function FazendaTab:Construir(paginaPai)
     btnSavePlotFazenda.ZIndex = zSave + 3
     Instance.new("UICorner", btnSavePlotFazenda).CornerRadius = UDim.new(0, 4)
 
+    -- Resolvemos aqui o bug do `zSave - 5` que escondia os dropdowns
     local plotDropdownFazenda = Componentes:CriarDropdown("Selecionar Save", cSave, State.FarmSettings, "CurrentSaveName", false, zSave, false)
 
     local function AtualizarListaSavesFazenda()
         if Bot.Modules.PlotManager and plotDropdownFazenda then
-            local plots = Bot.Modules.PlotManager:ObterTodos()
-            local lista = {}
-            for nome, _ in pairs(plots) do 
-                if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
-            end
-            if #lista == 0 then lista = {"Nenhum"} end
-            plotDropdownFazenda:Refresh(lista)
+            pcall(function()
+                local plots = Bot.Modules.PlotManager:ObterTodos()
+                local lista = {}
+                for nome, _ in pairs(plots) do 
+                    if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
+                end
+                plotDropdownFazenda:Refresh(lista)
+            end)
         end
     end
 
@@ -139,13 +144,14 @@ function FazendaTab:Construir(paginaPai)
 
     task.spawn(function()
         task.wait(1.5)
-        AtualizarListaSavesFazenda()
-        
+        pcall(function() AtualizarListaSavesFazenda() end)
         if Bot.Modules.Manager then
-            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-            DropdownSementes:Refresh(sementesPessoais)
-            PriorizeDropdown:Refresh(sementesGerais)
+            pcall(function()
+                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+                DropdownSementes:Refresh(sementesPessoais)
+                PriorizeDropdown:Refresh(sementesGerais)
+            end)
         end
     end)
 end

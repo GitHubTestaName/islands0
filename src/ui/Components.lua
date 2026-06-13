@@ -1,7 +1,6 @@
 -- src/ui/Components.lua
 local Components = {}
 
--- ================= VARIÁVEIS DE TEMA (DESIGN SYSTEM) =================
 Components.Theme = {
     CardBG = Color3.fromRGB(32, 32, 32),
     CardStroke = Color3.fromRGB(60, 60, 60),
@@ -265,19 +264,26 @@ function Components:CriarInputLargo(placeholder, parentRow, cardZBase)
     return input
 end
 
+-- ================= O MOLDE SUPER SUAVE PARA ITENS DA LISTA =================
 function Components:CriarItemDropdown(texto, parent, zIndexBase)
     local itemBtn = Instance.new("TextButton", parent)
     itemBtn.Size = UDim2.new(1, 0, 0, 32)
     itemBtn.BackgroundColor3 = Components.Theme.PanelBG 
     itemBtn.BorderSizePixel = 0
-    itemBtn.Text = "   " .. texto
+    itemBtn.Text = texto
     itemBtn.TextColor3 = Components.Theme.TextWhite
     itemBtn.Font = Enum.Font.SourceSansSemibold
     itemBtn.TextSize = 13
     itemBtn.TextXAlignment = Enum.TextXAlignment.Left
     itemBtn.ZIndex = zIndexBase
     itemBtn.AutoButtonColor = true 
+
     Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 6)
+    
+    local pad = Instance.new("UIPadding", itemBtn)
+    pad.PaddingLeft = UDim.new(0, 10)
+    pad.PaddingRight = UDim.new(0, 10)
+
     return itemBtn
 end
 
@@ -309,6 +315,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     icone.TextColor3 = self.Theme.TextDimmed
     icone.ZIndex = cardZBase + 4
     
+    -- O Container que abriga a lista!
     local dropdownContainer = Instance.new("TextButton", frame)
     dropdownContainer.Text = ""
     dropdownContainer.AutoButtonColor = false
@@ -317,7 +324,8 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     dropdownContainer.BackgroundColor3 = self.Theme.DropdownBG
     dropdownContainer.BorderSizePixel = 0
     dropdownContainer.Visible = false
-    dropdownContainer.ZIndex = cardZBase + 10 
+    -- ZINDEX PODEROSO: Nunca mais vai ficar escondido
+    dropdownContainer.ZIndex = cardZBase + 50 
     dropdownContainer.Active = true 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 6)
 
@@ -339,7 +347,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         searchBox.Font = Enum.Font.SourceSansSemibold
         searchBox.TextSize = 13
         searchBox.TextXAlignment = Enum.TextXAlignment.Left
-        searchBox.ZIndex = cardZBase + 11
+        searchBox.ZIndex = cardZBase + 51
         Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
         
         local sPad = Instance.new("UIPadding", searchBox)
@@ -352,7 +360,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     scroll.Position = UDim2.new(0, 0, 0, yOffsetScroll)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
-    scroll.ZIndex = cardZBase + 11
+    scroll.ZIndex = cardZBase + 51
     scroll.ScrollBarThickness = 4
     scroll.ScrollBarImageColor3 = self.Theme.AccentBlue
     scroll.Active = true 
@@ -388,23 +396,20 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         if isMulti then table.insert(itemsToRender, "All") end
         
         for _, item in ipairs(listaItems) do 
-            if item ~= "Nenhuma Ferramenta Equipada" and item ~= "Ainda não carregou / Vazio" and item ~= "Nenhum Encontrado" then
-                table.insert(itemsToRender, item) 
-            end
+            table.insert(itemsToRender, item) 
         end
 
         if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then
-            table.insert(itemsToRender, "Nenhum Encontrado")
+            table.insert(itemsToRender, "Nenhuma encontrada")
         end
 
         local function atualizarMainText()
             if isMulti then
-                if stateTable[stateKey]["All"] then 
-                    mainBtn.Text = "  " .. labelTexto .. ": All"
+                if stateTable[stateKey]["All"] then mainBtn.Text = "  " .. labelTexto .. ": All"
                 else
                     local count = 0
-                    for k, v in pairs(stateTable[stateKey]) do if v and k ~= "Nenhum Encontrado" and k ~= "All" then count = count + 1 end end
-                    mainBtn.Text = "  " .. labelTexto .. ": " .. count .. " itens sel."
+                    for k, v in pairs(stateTable[stateKey]) do if v and k ~= "Nenhuma encontrada" then count = count + 1 end end
+                    mainBtn.Text = "  " .. labelTexto .. ": " .. count .. " sel."
                 end
             else
                 mainBtn.Text = "  " .. labelTexto .. ": " .. tostring(stateTable[stateKey] or "Nenhum")
@@ -412,51 +417,38 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         end
         
         for _, itemNome in ipairs(itemsToRender) do
-            local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 12)
+            local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 52)
+            local corPadrao = Components.Theme.PanelBG
             
-            -- CORREÇÃO DA LINHA 435 ANULADA PARA SEMPRE:
-            -- Salvamos a cor em uma variável nativa sólida fora do escopo do objeto Roblox!
-            local corPadraoItem = Components.Theme.PanelBG
-            
-            table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = corPadraoItem})
+            table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = corPadrao})
             
             local function applyVisual()
                 if isMulti then
                     if stateTable[stateKey] and stateTable[stateKey][itemNome] then
                         itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
                     else
-                        itemBtn.BackgroundColor3 = corPadraoItem
+                        itemBtn.BackgroundColor3 = corPadrao
                     end
                 else
                     if stateTable[stateKey] == itemNome then
                         itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
                     else
-                        itemBtn.BackgroundColor3 = corPadraoItem
+                        itemBtn.BackgroundColor3 = corPadrao
                     end
                 end
             end
             applyVisual()
             
             itemBtn.MouseButton1Click:Connect(function()
-                if itemNome == "Nenhum Encontrado" then return end
+                if itemNome == "Nenhuma encontrada" then return end
 
                 if isMulti then
-                    if itemNome == "All" then 
-                        stateTable[stateKey] = {["All"] = true}
+                    if itemNome == "All" then stateTable[stateKey] = {["All"] = true}
                     else
                         if not stateTable[stateKey] then stateTable[stateKey] = {} end
                         stateTable[stateKey]["All"] = nil
                         stateTable[stateKey][itemNome] = not stateTable[stateKey][itemNome]
-                        
-                        -- Se desmarcar tudo, volta a marcar o All por segurança
-                        local temAlgoMarcado = false
-                        for k, v in pairs(stateTable[stateKey]) do
-                            if v and k ~= "All" then temAlgoMarcado = true break end
-                        end
-                        if not temAlgoMarcado then stateTable[stateKey] = {["All"] = true} end
                     end
-                    
-                    -- Renderiza as cores de clique em lote lendo a tabela de botões personalizada
                     for _, obj in ipairs(todosBotoes) do
                         if stateTable[stateKey][obj.nome] then
                             obj.btn.BackgroundColor3 = Components.Theme.AccentBlue
@@ -468,7 +460,11 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                 else
                     stateTable[stateKey] = itemNome
                     for _, obj in ipairs(todosBotoes) do
-                        obj.btn.BackgroundColor3 = (obj.nome == itemNome) and Components.Theme.AccentBlue or obj.bg
+                        if obj.nome == itemNome then
+                            obj.btn.BackgroundColor3 = Components.Theme.AccentBlue
+                        else
+                            obj.btn.BackgroundColor3 = obj.bg
+                        end
                     end
                     atualizarMainText()
                     dropdownContainer.Visible = false

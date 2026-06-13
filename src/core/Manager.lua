@@ -23,18 +23,18 @@ function Manager:GetInventoryTools(filtroTipo)
     local processados = {}
 
     local function checarTool(item)
+        -- Regra 1: Tem que ser uma Tool
         if item:IsA("Tool") and not processados[item.Name] then
             local isValid = false
             
+            -- Regra 2: Procura profundamente dentro da Tool
             for _, child in ipairs(item:GetDescendants()) do
-                -- A MAGIA ESTÁ AQUI: LuaSourceContainer engloba LocalScript, ModuleScript e Script!
-                if child:IsA("LuaSourceContainer") then
-                    local nomeScript = child.Name:lower()
-                    
-                    if filtroTipo == "Block" and nomeScript == "block-place" then
+                -- Regra 3: Exige que seja LocalScript com o nome certo
+                if child:IsA("LocalScript") then
+                    if filtroTipo == "Seed" and child.Name:lower() == "seed" then
                         isValid = true
                         break
-                    elseif filtroTipo == "Seed" and nomeScript == "seed" then
+                    elseif filtroTipo == "Block" and child.Name:lower() == "block-place" then
                         isValid = true
                         break
                     end
@@ -48,20 +48,18 @@ function Manager:GetInventoryTools(filtroTipo)
         end
     end
 
-    -- Lê o que o player tem equipado (Character)
-    if player.Character then
-        for _, obj in ipairs(player.Character:GetChildren()) do
-            checarTool(obj)
+    pcall(function()
+        -- Lê o que o player tem equipado no corpo (Character)
+        if player.Character then
+            for _, obj in ipairs(player.Character:GetChildren()) do checarTool(obj) end
         end
-    end
 
-    -- Lê a mochila do player (Backpack)
-    local bp = player:FindFirstChild("Backpack")
-    if bp then
-        for _, obj in ipairs(bp:GetChildren()) do
-            checarTool(obj)
+        -- Lê a mochila do player (Backpack)
+        local bp = player:FindFirstChild("Backpack")
+        if bp then
+            for _, obj in ipairs(bp:GetChildren()) do checarTool(obj) end
         end
-    end
+    end)
 
     table.sort(toolsEncontradas)
     return toolsEncontradas
@@ -69,14 +67,15 @@ end
 
 function Manager:GetAllSeedsInGame()
     local allSeeds = {}
-    local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
     
-    if toolsFolder then
-        for _, tool in ipairs(toolsFolder:GetChildren()) do
-            if tool:IsA("Tool") or tool:IsA("Folder") or tool:IsA("Model") then
+    pcall(function()
+        -- Regra Global: Vai direto na pasta Tools do Servidor
+        local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
+        if toolsFolder then
+            for _, tool in ipairs(toolsFolder:GetChildren()) do
+                -- Procura em todas as ferramentas/pastas guardadas ali
                 for _, child in ipairs(tool:GetDescendants()) do
-                    -- LuaSourceContainer de novo para garantir que pega todas as sementes globais!
-                    if child:IsA("LuaSourceContainer") and child.Name:lower() == "seed" then
+                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
                         if not table.find(allSeeds, tool.Name) then
                             table.insert(allSeeds, tool.Name)
                         end
@@ -85,7 +84,7 @@ function Manager:GetAllSeedsInGame()
                 end
             end
         end
-    end
+    end)
     
     table.sort(allSeeds)
     return allSeeds
