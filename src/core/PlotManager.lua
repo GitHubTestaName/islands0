@@ -2,38 +2,29 @@
 local HttpService = game:GetService("HttpService")
 local PlotManager = {}
 
--- Modificado para usar extensão de arquivo normal de texto! 
--- Os executors Roblox detestam extensões atípicas ou travam.
 local FILE_NAME = "IslandsBot_PlotsSave.txt"
 
 function PlotManager:ObterTodos()
+    local dadosFormatados = {}
     if type(isfile) == "function" and type(readfile) == "function" then
         if isfile(FILE_NAME) then
-            local sucesso, dadosJSON = pcall(function()
-                return readfile(FILE_NAME)
-            end)
-            if sucesso and dadosJSON then
-                local objSucesso, dadosTable = pcall(function()
-                    return HttpService:JSONDecode(dadosJSON)
-                end)
-                if objSucesso and type(dadosTable) == "table" then
-                    return dadosTable
+            local pSuccess, rData = pcall(readfile, FILE_NAME)
+            if pSuccess and type(rData) == "string" and rData ~= "" then
+                local jsonSuccess, jsonData = pcall(function() return HttpService:JSONDecode(rData) end)
+                if jsonSuccess and type(jsonData) == "table" then
+                    dadosFormatados = jsonData
                 end
             end
         end
     end
-    return {} -- Volta Vazio se não achar
+    return dadosFormatados
 end
 
 function PlotManager:SalvarPlot(nome, posicao, tamanho)
-    if type(writefile) ~= "function" then 
-        warn("ERRO (IslandsBot): Seu executor não suporta salvar arquivos locais no PC/Celular!")
-        return false 
-    end
+    if type(writefile) ~= "function" then return false end
     
     local plots = self:ObterTodos()
-    
-    -- Correção dos Math: Encapsula em Floats seguros para garantir encoding de sucesso
+    -- Formatamos os tamanhos tirando quebras bizarras da engine
     plots[nome] = {
         PosX = math.floor(posicao.X * 100) / 100, 
         PosY = math.floor(posicao.Y * 100) / 100, 
@@ -43,15 +34,7 @@ function PlotManager:SalvarPlot(nome, posicao, tamanho)
         SizeZ = math.floor(tamanho.Z * 100) / 100
     }
     
-    local sucesso, err = pcall(function()
-        local dataFormat = HttpService:JSONEncode(plots)
-        writefile(FILE_NAME, dataFormat)
-    end)
-    
-    if not sucesso then
-        warn("ERRO CRÍTICO no Bot para Salvar. Verifique sua pasta 'workspace' do seu software: ", err)
-    end
-    
+    local sucesso = pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(plots)) end)
     return sucesso
 end
 
@@ -61,9 +44,7 @@ function PlotManager:DeletarPlot(nome)
     
     if plots[nome] then
         plots[nome] = nil
-        pcall(function()
-            writefile(FILE_NAME, HttpService:JSONEncode(plots))
-        end)
+        pcall(function() writefile(FILE_NAME, HttpService:JSONEncode(plots)) end)
         return true
     end
     return false
