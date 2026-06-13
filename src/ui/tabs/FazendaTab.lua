@@ -4,95 +4,66 @@ local FazendaTab = {}
 function FazendaTab:Construir(paginaPai)
     local Bot = _G.IslandsBot
     local State = Bot.State
-    
-    -- Função local para criar dropdown sem depender de bibliotecas externas
-    local function CriarDropdownLocal(labelTexto, parent, stateTable, stateKey, isMulti, zIndex)
-        local frame = Instance.new("Frame", parent)
-        frame.Size = UDim2.new(0.95, 0, 0, 32)
-        frame.BackgroundTransparency = 1
-        
-        local btnMain = Instance.new("TextButton", frame)
-        btnMain.Size = UDim2.new(1, 0, 1, 0)
-        btnMain.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        btnMain.Text = "  " .. labelTexto .. ": Carregando..."
-        btnMain.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btnMain.Font = Enum.Font.SourceSansSemibold
-        btnMain.TextSize = 14
-        btnMain.TextXAlignment = Enum.TextXAlignment.Left
-        btnMain.BorderSizePixel = 0
-        Instance.new("UICorner", btnMain).CornerRadius = UDim.new(0, 4)
+    local Componentes = Bot.Modules.UIComponents -- Chamando a biblioteca principal de UI
 
-        local listaContainer = Instance.new("ScrollingFrame", frame)
-        listaContainer.Size = UDim2.new(1, 0, 0, 150)
-        listaContainer.Position = UDim2.new(0, 0, 1, 5)
-        listaContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        listaContainer.Visible = false
-        listaContainer.ZIndex = 50 -- ZIndex fixo e alto
-        listaContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-        Instance.new("UIListLayout", listaContainer).Padding = UDim.new(0, 2)
-        
-        btnMain.MouseButton1Click:Connect(function() listaContainer.Visible = not listaContainer.Visible end)
+    Componentes:ResetOrder() -- Reset do layout
 
-        return {
-            btnMain = btnMain,
-            scroll = listaContainer,
-            Refresh = function(self, lista)
-                listaContainer:ClearAllChildren()
-                Instance.new("UIListLayout", listaContainer).Padding = UDim.new(0, 2)
-                
-                -- Adiciona o botão "All"
-                local btnAll = Instance.new("TextButton", listaContainer)
-                btnAll.Text = "  All"
-                btnAll.Size = UDim2.new(1, 0, 0, 30)
-                btnAll.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                btnAll.TextColor3 = Color3.fromRGB(255, 255, 255)
-                btnAll.MouseButton1Click:Connect(function() stateTable[stateKey] = {["All"] = true}; btnMain.Text = "  " .. labelTexto .. ": All" end)
+    -- 1. CARD PRINCIPAL: CONTROLES DA FAZENDA (O Toggle On/Off e as Saves!)
+    local cFarm, zFarm = Componentes:CriarCard("MAIN FARM & SELETOR", paginaPai)
+    
+    Componentes:CriarBotaoEstilizado("🟩 Criar Seletor de Fazenda", cFarm, zFarm, function() 
+        if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
+    end)
+    Componentes:CriarControlesEspaciais(cFarm, zFarm, "ScannerFazenda")
+    
+    Componentes:CriarToggleLargo("🌾 Iniciar Auto-Fazenda", cFarm, State, "AutoFarmingCrops", zFarm, function(v)
+        if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end 
+    end)
 
-                for _, item in ipairs(lista) do
-                    local b = Instance.new("TextButton", listaContainer)
-                    b.Text = "  " .. item
-                    b.Size = UDim2.new(1, 0, 0, 30)
-                    b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    b.MouseButton1Click:Connect(function() 
-                        stateTable[stateKey] = item
-                        btnMain.Text = "  " .. labelTexto .. ": " .. item 
-                        listaContainer.Visible = false
-                    end)
-                end
-                listaContainer.CanvasSize = UDim2.new(0, 0, 0, listaContainer.UIListLayout.AbsoluteContentSize.Y)
-            end
-        }
-    end
+    Componentes:CriarBotaoEstilizado("🚜 Arar Toda a Área Manualmente", cFarm, zFarm, function() 
+        if Bot.Modules.Farmer then Bot.Modules.Farmer:ArarTerra() end 
+    end)
 
-    -- Desenho da Aba
-    local cFarm = Instance.new("Frame", paginaPai); cFarm.Size = UDim2.new(0, 240, 0, 150); cFarm.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-    Instance.new("UIListLayout", cFarm).Padding = UDim.new(0, 10)
-    Instance.new("TextLabel", cFarm).Text = "MAIN FARM"
+    -- 2. CARD DE CONFIGURAÇÕES (Velocidade e Delays do Bot de Farm)
+    local cFarmCfg, zFarmCfg = Componentes:CriarCard("TWEAKS DA FAZENDA", paginaPai)
+    local rowF1 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
+    Componentes:CriarCheckboxMetade("Voo Auto (Tween)", rowF1, State.FarmSettings, "TweenToTarget", zFarmCfg)
+    Componentes:CriarInputMetade("Velocidade Voo", rowF1, State.FarmSettings, "TweenSpeed", 20, zFarmCfg)
+
+    local rowF2 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
+    Componentes:CriarCheckboxMetade("Repor/Arar auto", rowF2, State.FarmSettings, "PlowGrass", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Limpar números", rowF2, State.ScannerFazenda, "HideNumbers", zFarmCfg, function()
+        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
+    end)
+
+    -- 3. CARD DAS SEMENTES! (Aqui está a grande mágica)
+    local cSeed, zSeed = Componentes:CriarCard("SEED CONFIG & PLANTIO", paginaPai)
+
+    -- True no final significa "temSearchBox", perfeito pra não precisar rolar mil nomes!
+    local dropPessoal = Componentes:CriarDropdown("Mochila (O que quero plantar)", cSeed, State, "SementeSelecionada", true, zSeed, true)
+    local dropPriorize = Componentes:CriarDropdown("Prioridade Geral do Bot", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
-    local cSeed = Instance.new("Frame", paginaPai); cSeed.Size = UDim2.new(0, 240, 0, 200); cSeed.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
-    Instance.new("TextLabel", cSeed).Text = "SEED"
-    
-    local dropPessoal = CriarDropdownLocal("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, 10)
-    local dropPriorize = CriarDropdownLocal("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, 10)
-    
-    local btnUpdate = Instance.new("TextButton", cSeed)
-    btnUpdate.Text = "🔄 Atualizar"
-    btnUpdate.MouseButton1Click:Connect(function()
+    Componentes:CriarBotaoEstilizado("🔄 Atualizar Listas de Sementes", cSeed, zSeed, function()
         if Bot.Modules.Manager then
+            -- Mágica dos delays já integrada no refresh do manager
             local pessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
             dropPessoal:Refresh(pessoais)
             local globais = Bot.Modules.Manager:GetAllSeedsInGame()
+            table.insert(globais, 1, "Nenhum") -- Opção de "Limpar prioridade"
             dropPriorize:Refresh(globais)
         end
     end)
 
-    -- Carregamento inicial (após 2 segundos para garantir que o jogo carregou tudo)
+    -- Carrega inicialmente os itens sem bloquear o jogo!
     task.spawn(function()
-        task.wait(2)
+        task.wait(1.5) -- Apenas um cooldown suave inicial pra n causar lag spike no script execution
         if Bot.Modules.Manager then
-            dropPessoal:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"))
-            dropPriorize:Refresh(Bot.Modules.Manager:GetAllSeedsInGame())
+            local pt = Bot.Modules.Manager:GetInventoryTools("Seed")
+            dropPessoal:Refresh(pt)
+            
+            local gt = Bot.Modules.Manager:GetAllSeedsInGame()
+            table.insert(gt, 1, "Nenhum")
+            dropPriorize:Refresh(gt)
         end
     end)
 end

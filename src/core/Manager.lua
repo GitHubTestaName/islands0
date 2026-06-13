@@ -16,86 +16,89 @@ function Manager:ObterBlocoRaiz(part)
     return part:IsA("BasePart") and part or nil
 end
 
--- ================= A REGRA EXATA DO INVENTÁRIO (Sementes Pessoais / Blocos) =================
+-- ================= A REGRA DO INVENTÁRIO (Smarter Item Detection) =================
 function Manager:GetInventoryTools(filtroTipo)
     local player = Players.LocalPlayer
     local toolsEncontradas = {}
     local processados = {}
 
     local function checarItem(item)
-        if not processados[item.Name] then
-            local isValid = false
-            
-            -- Vasculha absolutamente tudo dentro do item, sem importar a classe
-            local todosFilhos = item:GetDescendants()
-            for i = 1, #todosFilhos do
-                local child = todosFilhos[i]
-                local cName = child.Name:lower()
-                
-                if filtroTipo == "Seed" and cName == "seed" then
-                    isValid = true
-                    break
-                elseif filtroTipo == "Block" and cName == "block-place" then
-                    isValid = true
-                    break
+        if processados[item.Name] then return end
+        
+        local isValid = false
+        local nLowerCase = item.Name:lower()
+
+        if filtroTipo == "Seed" then
+            -- Muitas sementes no Islands tem "seed" ou "sapling" no proprio nome da Tool
+            if nLowerCase:match("seed") or nLowerCase:match("spore") or nLowerCase:match("sapling") then
+                isValid = true
+            else
+                -- Caso o nome não seja claro, verifica o interior (antiga checagem, só por segurança)
+                for _, child in ipairs(item:GetDescendants()) do
+                    if child.Name:lower() == "seed" then
+                        isValid = true; break
+                    end
                 end
             end
-            
-            if isValid then
-                table.insert(toolsEncontradas, item.Name)
-                processados[item.Name] = true
+        elseif filtroTipo == "Block" then
+            -- Busca no interior pela configuração "block-place" (nativo do islands)
+            for _, child in ipairs(item:GetDescendants()) do
+                if child.Name:lower() == "block-place" then
+                    isValid = true; break
+                end
             end
+        end
+        
+        if isValid then
+            table.insert(toolsEncontradas, item.Name)
+            processados[item.Name] = true
         end
     end
 
     pcall(function()
-        -- 1. Verifica TUDO no Character (mão/equipado)
+        -- Character (equipado)
         if player.Character then
-            local itensCharacter = player.Character:GetChildren()
-            for i = 1, #itensCharacter do
-                checarItem(itensCharacter[i])
-            end
+            for _, i in ipairs(player.Character:GetChildren()) do checarItem(i) end
         end
-
-        -- 2. Verifica TUDO no Backpack (mochila)
+        -- Backpack (inventario real)
         local bp = player:FindFirstChild("Backpack")
         if bp then
-            local itensMochila = bp:GetChildren()
-            for i = 1, #itensMochila do
-                checarItem(itensMochila[i])
-            end
+            for _, i in ipairs(bp:GetChildren()) do checarItem(i) end
         end
     end)
 
     table.sort(toolsEncontradas)
+    if #toolsEncontradas == 0 then table.insert(toolsEncontradas, "Nenhum item encontrado") end
     return toolsEncontradas
 end
 
--- ================= A REGRA DAS SEMENTES GLOBAIS (Priorize Plant) =================
+-- ================= A REGRA DAS SEMENTES GLOBAIS =================
 function Manager:GetAllSeedsInGame()
     local allSeeds = {}
     local processados = {}
     
     pcall(function()
         local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
-        
         if toolsFolder then
-            local todosOsItens = toolsFolder:GetChildren()
-            
-            -- Vasculha todos os itens guardados na pasta Tools do servidor
-            for i = 1, #todosOsItens do
-                local tool = todosOsItens[i]
-                
+            for _, tool in ipairs(toolsFolder:GetChildren()) do
                 if not processados[tool.Name] then
-                    local todosFilhosTool = tool:GetDescendants()
+                    local nLowerCase = tool.Name:lower()
+                    local isSeed = false
                     
-                    for j = 1, #todosFilhosTool do
-                        local child = todosFilhosTool[j]
-                        if child.Name:lower() == "seed" then
-                            table.insert(allSeeds, tool.Name)
-                            processados[tool.Name] = true
-                            break
+                    -- Avaliação mais rápida e abrangente baseada no nome:
+                    if nLowerCase:match("seed") or nLowerCase:match("sapling") then
+                        isSeed = true
+                    else
+                        for _, child in ipairs(tool:GetDescendants()) do
+                            if child.Name:lower() == "seed" then
+                                isSeed = true; break
+                            end
                         end
+                    end
+                    
+                    if isSeed then
+                        table.insert(allSeeds, tool.Name)
+                        processados[tool.Name] = true
                     end
                 end
             end
