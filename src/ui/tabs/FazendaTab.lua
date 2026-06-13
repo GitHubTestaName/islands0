@@ -16,10 +16,10 @@ function FazendaTab:Construir(paginaPai)
     Componentes:CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Seletor (Verde)", cFarm, zFarm, function() 
         if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
     end)
-    -- Controles D-pad Espaciais Adicionados no Local Correto!
+    -- Controles D-pad Espaciais 
     Componentes:CriarControlesEspaciais(cFarm, zFarm, "ScannerFazenda")
     
-    -- Alternadores Auto (Liga e Começa Tudo e Aragem forçada)
+    -- Alternadores Auto 
     Componentes:CriarToggleLargo("🌾 Auto-Fazenda Principal", cFarm, State, "AutoFarmingCrops", zFarm, function(v) 
         if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end 
     end)
@@ -40,14 +40,13 @@ function FazendaTab:Construir(paginaPai)
     rSaveNomeF.LayoutOrder = Componentes:GetInnerOrder()
     
     local inputPlotFarming = Componentes:CriarInputLargo("Escreva Nome da Área...", rSaveNomeF, zFarmSaves)
-    local plotDropdownFarming = Componentes:CriarDropdown("Plots de Farm", cFarmSaves, State.FarmSettings, "CurrentSaveName", false, zFarmSaves - 5, false)
+    local plotDropdownFarming = Componentes:CriarDropdown("Plots de Farm", cFarmSaves, State.FarmSettings, "CurrentSaveName", false, zFarmSaves, false)
 
     local function AtualizarListaSavesFarming()
         if Bot.Modules.PlotManager and plotDropdownFarming then
             local plots = Bot.Modules.PlotManager:ObterTodos()
             local lista = {}
             for nome, _ in pairs(plots) do 
-                -- Busca SÓ as listas rotuladas como área de Fazenda (Farmings)!
                 if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
             end
             if #lista == 0 then lista = {"Nenhum"} end
@@ -58,19 +57,16 @@ function FazendaTab:Construir(paginaPai)
     local btnSavePlotFarm = Componentes:CriarBotaoEstilizado("💾 Salvar Plot", rSaveNomeF, zFarmSaves, function()
         local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
         if inputPlotFarming.Text ~= "" and cubo then
-            -- Prende sempre o Nome Focado ao Rótulo de Fazenda, com Segurança
             Bot.Modules.PlotManager:SalvarPlot("Farming_" .. inputPlotFarming.Text, cubo.Position, cubo.Size)
             AtualizarListaSavesFarming()
-            inputPlotFarming.Text = "" -- Limpa pra reescrever dnv!
+            inputPlotFarming.Text = "" 
         end
     end)
     
-    -- Ajuste milimétrico nos frames criados em fileira horizontal da parte salvar/texto
     btnSavePlotFarm.Size = UDim2.new(0.35, 0, 1, 0)
     btnSavePlotFarm.Position = UDim2.new(0.65, 5, 0, 0)
-    btnSavePlotFarm.BackgroundColor3 = Color3.fromRGB(0, 160, 50) -- Tom mais Verdinho Pro Salvar (Identificação fazenda!)
+    btnSavePlotFarm.BackgroundColor3 = Color3.fromRGB(0, 160, 50) 
 
-    -- OS SUB-CONTROLES DAS FILEIRAS PRA PLOTAR:
     local rAcoesF = Componentes:CriarGridTripla(cFarmSaves, zFarmSaves)
     Componentes:CriarBotaoPequeno("Carregar", Color3.fromRGB(40, 150, 80), rAcoesF, zFarmSaves, function()
         local sn = State.FarmSettings.CurrentSaveName
@@ -99,36 +95,38 @@ function FazendaTab:Construir(paginaPai)
         end
     end)
     
-    -- Checkboxs Avulsas Dentro do Cartão Saver:
     local rowFAutoSave = Componentes:CriarGridDupla(cFarmSaves, zFarmSaves)
     Componentes:CriarCheckboxMetade("Autocarregar Plot Start", rowFAutoSave, State.FarmSettings, "AutoUseSelectedSave", zFarmSaves)
-    Componentes:CriarCheckboxMetade("Esconder Numbers do plot", rowFAutoSave, State.ScannerFazenda, "HideNumbers", zFarmSaves, function()
+    Componentes:CriarCheckboxMetade("Esconder Numbers plot", rowFAutoSave, State.ScannerFazenda, "HideNumbers", zFarmSaves, function()
         if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
     end)
 
 
     ------------------------------------------------------
-    -- CARD 3: TWEAKS, AJUSTES e DELAYS! (Pequenos ajustes)
+    -- CARD 3: TWEAKS, AJUSTES e DELAYS
     ------------------------------------------------------
     local cFarmCfg, zFarmCfg = Componentes:CriarCard("DESEMPENHO (FAZENDA)", paginaPai)
     local rowF1 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
-    Componentes:CriarCheckboxMetade("Teletransporte e Voo", rowF1, State.FarmSettings, "TweenToTarget", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Teletransporte Voo", rowF1, State.FarmSettings, "TweenToTarget", zFarmCfg)
     Componentes:CriarInputMetade("Aceler. Voo", rowF1, State.FarmSettings, "TweenSpeed", 20, zFarmCfg)
 
     local rowF2 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
-    Componentes:CriarCheckboxMetade("Quebra (Recoloque)", rowF2, State.FarmSettings, "AutoReplace", zFarmCfg)
-    Componentes:CriarCheckboxMetade("Limpeza (Col. Grama)", rowF2, State.FarmSettings, "PlaceGrass", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Quebra/Recoloca Auto", rowF2, State.FarmSettings, "AutoReplace", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Forçar Repor Terra/Grama", rowF2, State.FarmSettings, "PlaceGrass", zFarmCfg)
     
 
     ------------------------------------------------------
-    -- CARD 4: DROPDOWNS SEMENTES REAGENTE DINÂMICO
+    -- CARD 4: DROPDOWNS SEMENTES (CORREÇÃO DE RENDERIZACAO!)
     ------------------------------------------------------
     local cSeed, zSeed = Componentes:CriarCard("CONTROLE: PLANTIOS DA SEMENTE", paginaPai)
 
-    local dropPessoal = Componentes:CriarDropdown("Possui Mochila:", cSeed, State, "SementeSelecionada", true, zSeed - 5, true)
-    local dropPriorize = Componentes:CriarDropdown("Semente Certa Geral do Servidor", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed - 15, true)
+    -- Note as matemáticas absolutas: Colocamos (+100), e em quem fica abaixo apenas (+50).
+    -- Assim quando este abrir sua tela do drop list ele VAI SOBREPOR qualquer um sem medo:
+    local dropPessoal = Componentes:CriarDropdown("Inventário Mochila Pessoal:", cSeed, State, "SementeSelecionada", true, zSeed + 100, true)
+    local dropPriorize = Componentes:CriarDropdown("Puxar Geral do Jogo Server", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed + 50, true)
     
-    Componentes:CriarBotaoEstilizado("🔄 Sincronizar Listas Inventario Semente", cSeed, zSeed - 20, function()
+    -- Deixamos em (zSeed) inalterado de fundo do Card normal!
+    Componentes:CriarBotaoEstilizado("🔄 Sincronizar Listas Inventário Semente", cSeed, zSeed, function()
         if Bot.Modules.Manager then
             dropPessoal:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"))
             
@@ -139,10 +137,10 @@ function FazendaTab:Construir(paginaPai)
     end)
 
     ------------------------------------------------------
-    -- EVENTOS FINAIS ASSÍNCRONOS! (Recarga visual limpa!)
+    -- START / CARREGA INVISIVEL NO GAME LOGS:
     ------------------------------------------------------
     task.spawn(function()
-        task.wait(2) -- Recarregamento Inteligente! Esperar Servidor Conceder os Objetos
+        task.wait(2) 
         AtualizarListaSavesFarming()
         
         if Bot.Modules.Manager then
