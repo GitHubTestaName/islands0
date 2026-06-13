@@ -20,7 +20,7 @@ MainFrame.Size = UDim2.new(0, 650, 0, 500)
 MainFrame.Position = UDim2.new(0.5, -325, 0.5, -250)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = false
+MainFrame.ClipsDescendants = true -- RESOLVE O VAZAMENTO DE ITENS PELA TELA
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 State.HideKey = Enum.KeyCode.V
@@ -48,6 +48,7 @@ TopBar.Size = UDim2.new(1, 0, 0, 35)
 TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TopBar.BorderSizePixel = 0
 TopBar.Active = true
+TopBar.ZIndex = 5000 -- Garante que a TopBar fique sempre acima de qualquer rolagem
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
 local TopBarBase = Instance.new("Frame", TopBar)
@@ -55,6 +56,7 @@ TopBarBase.Size = UDim2.new(1, 0, 0, 8)
 TopBarBase.Position = UDim2.new(0, 0, 1, -8)
 TopBarBase.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TopBarBase.BorderSizePixel = 0
+TopBarBase.ZIndex = 5000
 
 local dragToggle, dragStart, startPos
 TopBar.InputBegan:Connect(function(input)
@@ -77,7 +79,7 @@ WindowResizeHandle.BackgroundTransparency = 1
 WindowResizeHandle.Text = "◢"
 WindowResizeHandle.TextColor3 = Color3.fromRGB(150, 150, 150)
 WindowResizeHandle.TextSize = 16
-WindowResizeHandle.ZIndex = 100
+WindowResizeHandle.ZIndex = 5000
 
 local draggingWindow, winDragStartPos, winStartSize
 WindowResizeHandle.InputBegan:Connect(function(input)
@@ -104,6 +106,7 @@ Title.TextColor3 = Color3.fromRGB(240, 240, 240)
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
+Title.ZIndex = 5001
 
 local StatusLabel = Instance.new("TextLabel", TopBar)
 StatusLabel.Size = UDim2.new(0.5, -15, 1, 0)
@@ -114,6 +117,7 @@ StatusLabel.TextColor3 = Color3.fromRGB(0, 180, 255)
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
 StatusLabel.Font = Enum.Font.SourceSansSemibold
 StatusLabel.TextSize = 14
+StatusLabel.ZIndex = 5001
 function UI:SetStatusText(texto) StatusLabel.Text = "Status: " .. tostring(texto) end
 
 local Sidebar = Instance.new("Frame", MainFrame)
@@ -131,8 +135,7 @@ local ContentContainer = Instance.new("Frame", MainFrame)
 ContentContainer.Size = UDim2.new(1, -140, 1, -35)
 ContentContainer.Position = UDim2.new(0, 140, 0, 35)
 ContentContainer.BackgroundTransparency = 1
--- A ABA GERAL ACOMPANHA OS DROPDOWNS PARA FORA, SE PRECISAR!
-ContentContainer.ClipsDescendants = false
+ContentContainer.ClipsDescendants = true 
 
 local Paginas, BotoesAba = {}, {}
 local function CriarAba(nome, id)
@@ -158,8 +161,7 @@ local function CriarAba(nome, id)
     pg.BorderSizePixel = 0
     pg.ScrollBarThickness = 5
     pg.Visible = false
-    -- MANTÉM OS DROPDOWNS SOLTOS E VISÍVEIS
-    pg.ClipsDescendants = false
+    pg.ClipsDescendants = true -- IMPEDE QUE OS CARDS VAZEM POR CIMA DA TOPBAR
     
     local layout = Instance.new("UIListLayout", pg)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -172,10 +174,10 @@ local function CriarAba(nome, id)
     local padding = Instance.new("UIPadding", pg)
     padding.PaddingLeft = UDim.new(0, 10)
     padding.PaddingTop = UDim.new(0, 10)
-    padding.PaddingBottom = UDim.new(0, 300) -- GIGANTE: Deixa espaço de sobra para o pior caso de dropdown não ser cortado pelo fim da tela
+    padding.PaddingBottom = UDim.new(0, 250) -- ALMOFADA PARA OS DROPDOWNS DO FUNDO NÃO SEREM CORTADOS
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 300)
+        pg.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 260)
     end)
     
     Paginas[id], BotoesAba[id] = pg, btn
@@ -199,25 +201,26 @@ BotoesAba["fazenda"].BackgroundColor3 = Color3.fromRGB(0, 100, 200)
 BotoesAba["fazenda"].UIStroke.Transparency = 0
 Paginas["fazenda"].Visible = true
 
--- ================= A MÁGICA DO Z-INDEX INVERSO =================
--- Como no Flex-Wrap o que vem por último fica embaixo, a nossa ZIndexGlobal começa de um valor ALTO e VAI DESCENDO.
--- Assim, o Card 1 (topo) vai sobrepor o Card 2, o 2 vai sobrepor o 3, etc. Nunca mais um dropdown ficará "invisível" atrás do debaixo!
+
+-- ================= A MÁGICA DO Z-INDEX CORRIGIDA =================
 local layoutOrderGlobal = 0
-local zIndexGlobal = 1000 
-local function GetOrdemE_ZIndex() 
+local zIndexGlobal = 1000 -- Começa alto e vai descendo para garantir que o Card de cima sobreponha o de baixo
+
+local function GetOrdem() 
     layoutOrderGlobal = layoutOrderGlobal + 1 
     zIndexGlobal = zIndexGlobal - 10 
     return layoutOrderGlobal, zIndexGlobal 
 end
 
 local function CriarCard(titulo, parent)
+    local order, baseZ = GetOrdem()
+    
     local card = Instance.new("Frame", parent)
-    local order, baseZ = GetOrdemE_ZIndex()
     card.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
     card.Size = UDim2.new(0, 240, 0, 0)
     card.LayoutOrder = order
     card.ZIndex = baseZ
-    card.ClipsDescendants = false
+    card.ClipsDescendants = false -- Permite que os dropdowns saiam PARA FORA do cartão
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
     
     local stroke = Instance.new("UIStroke", card)
@@ -251,7 +254,8 @@ local function CriarCard(titulo, parent)
     local cLayout = Instance.new("UIListLayout", content)
     cLayout.Padding = UDim.new(0, 8)
     cLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    cLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    cLayout.SortOrder = Enum.SortOrder.LayoutOrder -- Preserva a ordem de criação
+
     local pad = Instance.new("UIPadding", content)
     pad.PaddingTop = UDim.new(0, 10)
     pad.PaddingBottom = UDim.new(0, 10)
@@ -260,18 +264,15 @@ local function CriarCard(titulo, parent)
         content.Size = UDim2.new(1, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
         card.Size = UDim2.new(0, 240, 0, 31 + content.Size.Y.Offset)
     end)
+
     return content, baseZ
 end
 
--- ================= MÉTODOS DE CRIAÇÃO INTERNOS =================
-local innerOrderGlobal = 0
-local function GetInnerOrder() innerOrderGlobal = innerOrderGlobal + 1 return innerOrderGlobal end
-
+-- Utilitários Internos do Cartão (Herdam o baseZ do Cartão)
 local function CriarGridDupla(parent, cardZBase)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(0.95, 0, 0, 32)
     f.BackgroundTransparency = 1
-    f.LayoutOrder = GetInnerOrder()
     f.ZIndex = cardZBase + 2
     local layout = Instance.new("UIListLayout", f)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -283,7 +284,6 @@ local function CriarGridTripla(parent, cardZBase)
     local f = Instance.new("Frame", parent)
     f.Size = UDim2.new(0.95, 0, 0, 32)
     f.BackgroundTransparency = 1
-    f.LayoutOrder = GetInnerOrder()
     f.ZIndex = cardZBase + 2
     local layout = Instance.new("UIListLayout", f)
     layout.FillDirection = Enum.FillDirection.Horizontal
@@ -300,7 +300,6 @@ local function CriarBotaoEstilizado(texto, parent, cardZBase, callback)
     btn.Font = Enum.Font.SourceSansSemibold
     btn.TextSize = 14
     btn.BorderSizePixel = 0
-    btn.LayoutOrder = GetInnerOrder()
     btn.ZIndex = cardZBase + 2
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     btn.MouseButton1Click:Connect(callback)
@@ -310,7 +309,6 @@ end
 local function CriarToggleLargo(texto, parent, stateTable, stateKey, cardZBase, callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.95, 0, 0, 34)
-    btn.LayoutOrder = GetInnerOrder()
     local isAtivo = stateTable[stateKey]
     btn.BackgroundColor3 = isAtivo and Color3.fromRGB(40, 140, 70) or Color3.fromRGB(160, 50, 50)
     btn.Text = "  " .. texto .. (isAtivo and " [ON]" or " [OFF]")
@@ -336,6 +334,7 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZ
     frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     frame.ZIndex = cardZBase + 3
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
+    
     local btn = Instance.new("TextButton", frame)
     btn.Size = UDim2.new(0, 22, 0, 22)
     btn.Position = UDim2.new(0, 5, 0.5, -11)
@@ -345,6 +344,7 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZ
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.ZIndex = cardZBase + 4
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(1, -35, 1, 0)
     label.Position = UDim2.new(0, 32, 0, 0)
@@ -355,6 +355,7 @@ local function CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZ
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = cardZBase + 4
+    
     btn.MouseButton1Click:Connect(function()
         stateTable[stateKey] = not stateTable[stateKey]
         local v = stateTable[stateKey]
@@ -370,6 +371,7 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     frame.ZIndex = cardZBase + 3
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
+    
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.5, 0, 1, 0)
     label.Position = UDim2.new(0, 8, 0, 0)
@@ -380,6 +382,7 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.ZIndex = cardZBase + 4
+    
     local input = Instance.new("TextBox", frame)
     input.Size = UDim2.new(0.45, 0, 0, 22)
     input.Position = UDim2.new(0.5, 0, 0.5, -11)
@@ -390,23 +393,19 @@ local function CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefau
     input.TextSize = 13
     input.ZIndex = cardZBase + 4
     Instance.new("UICorner", input).CornerRadius = UDim.new(0, 4)
+    
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
         if val then stateTable[stateKey] = val else input.Text = tostring(stateTable[stateKey]) end
     end)
 end
 
-local zDropdownIndex = 900
+-- ================= DROPDOWN BLINDADO =================
 local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
-    frame.LayoutOrder = GetInnerOrder()
-    
-    zDropdownIndex = zDropdownIndex - 5 
-    local currentDropZ = zDropdownIndex
-    
-    frame.ZIndex = currentDropZ
+    frame.ZIndex = cardZBase + 2
     
     local mainBtn = Instance.new("TextButton", frame)
     mainBtn.Size = UDim2.new(1, 0, 1, 0)
@@ -417,7 +416,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     mainBtn.TextSize = 14
     mainBtn.TextXAlignment = Enum.TextXAlignment.Left
     mainBtn.BorderSizePixel = 0
-    mainBtn.ZIndex = currentDropZ + 1
+    mainBtn.ZIndex = cardZBase + 3
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
     
     local icone = Instance.new("TextLabel", mainBtn)
@@ -426,7 +425,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     icone.BackgroundTransparency = 1
     icone.Text = "▼"
     icone.TextColor3 = Color3.fromRGB(200, 200, 200)
-    icone.ZIndex = currentDropZ + 1
+    icone.ZIndex = cardZBase + 4
     
     local dropdownContainer = Instance.new("Frame", frame)
     dropdownContainer.Size = UDim2.new(1, 0, 0, 180)
@@ -434,7 +433,8 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     dropdownContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     dropdownContainer.BorderSizePixel = 0
     dropdownContainer.Visible = false
-    dropdownContainer.ZIndex = currentDropZ + 10 -- SOBREPÕE ABSOLUTAMENTE TUDO!
+    -- A MÁGICA DE SOBREPOSIÇÃO: Recebe +10 ao ZIndex Base do Cartão.
+    dropdownContainer.ZIndex = cardZBase + 10 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 4)
     
     local searchBox = nil
@@ -449,7 +449,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
         searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
         searchBox.Font = Enum.Font.SourceSans
         searchBox.TextSize = 13
-        searchBox.ZIndex = currentDropZ + 11
+        searchBox.ZIndex = cardZBase + 11
         Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
         yOffsetScroll = 35
     end
@@ -459,7 +459,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
     scroll.Position = UDim2.new(0, 0, 0, yOffsetScroll)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
-    scroll.ZIndex = currentDropZ + 11
+    scroll.ZIndex = cardZBase + 11
     scroll.ScrollBarThickness = 5
     Instance.new("UIListLayout", scroll).SortOrder = Enum.SortOrder.LayoutOrder
     
@@ -504,7 +504,7 @@ local function CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, 
             itemBtn.Font = Enum.Font.SourceSans
             itemBtn.TextSize = 13
             itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-            itemBtn.ZIndex = currentDropZ + 12
+            itemBtn.ZIndex = cardZBase + 12
             
             table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
             
@@ -571,7 +571,6 @@ local function CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     local container = Instance.new("Frame", parentCard)
     container.Size = UDim2.new(0.95, 0, 0, 100)
     container.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    container.LayoutOrder = GetInnerOrder()
     container.ZIndex = cardZBase + 2
     Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
     
@@ -625,6 +624,7 @@ local function CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     CriarAcaoVert("🔽 Descer Seletor", "Descer")
 end
 
+
 -- ================= PREENCHENDO ABA 3: FAZENDA =================
 local p3 = Paginas["fazenda"]
 local cFarm, zFarm = CriarCard("MAIN FARM", p3)
@@ -664,8 +664,8 @@ CriarControlesEspaciais(cSave, zSave, "ScannerFazenda")
 local rSaveNome = Instance.new("Frame", cSave)
 rSaveNome.Size = UDim2.new(0.95, 0, 0, 32)
 rSaveNome.BackgroundTransparency = 1
-rSaveNome.LayoutOrder = GetInnerOrder()
 rSaveNome.ZIndex = zSave + 2
+
 local inputPlotFazenda = Instance.new("TextBox", rSaveNome)
 inputPlotFazenda.Size = UDim2.new(0.65, -5, 1, 0)
 inputPlotFazenda.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -774,7 +774,6 @@ CriarControlesEspaciais(cSelAzul, zSelAzul, "ScannerGeral")
 local rSaveNomeM = Instance.new("Frame", cSelAzul)
 rSaveNomeM.Size = UDim2.new(0.95, 0, 0, 32)
 rSaveNomeM.BackgroundTransparency = 1
-rSaveNomeM.LayoutOrder = GetInnerOrder()
 rSaveNomeM.ZIndex = zSelAzul + 2
 local inputPlotMining = Instance.new("TextBox", rSaveNomeM)
 inputPlotMining.Size = UDim2.new(0.65, -5, 1, 0)
