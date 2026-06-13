@@ -16,54 +16,54 @@ function Manager:ObterBlocoRaiz(part)
     return part:IsA("BasePart") and part or nil
 end
 
--- ================= A LEITURA ABSOLUTA DO INVENTÁRIO =================
+-- ================= A REGRA EXATA DO INVENTÁRIO =================
 function Manager:GetInventoryTools(filtroTipo)
     local player = Players.LocalPlayer
     local toolsEncontradas = {}
-    local itensProcessados = {}
+    local processados = {}
 
-    local function processarItem(item)
-        -- REMOVIDO: O filtro de classe (item:IsA("Tool")). Vamos olhar TUDO sem julgar!
-        if not itensProcessados[item.Name] then
-            local atendeFiltro = false
+    local function checarTool(item)
+        -- REGRA 1: Exigir que seja uma "Tool" evita que o script leia milhares de peças da roupa/corpo do personagem
+        if item:IsA("Tool") and not processados[item.Name] then
+            local isValid = false
             
-            pcall(function()
-                -- Varre literalmente TUDO o que estiver dentro do item
-                for _, child in ipairs(item:GetDescendants()) do
+            -- REGRA 2: Vasculha tudo dentro da Tool
+            for _, child in ipairs(item:GetDescendants()) do
+                -- REGRA 3: O objeto tem que ser obrigatoriamente um LocalScript
+                if child:IsA("LocalScript") then
+                    local nomeScript = child.Name:lower()
                     
-                    -- Limpa o nome (remove espaços em branco invisíveis e letras maiúsculas)
-                    local nomeLimpo = string.gsub(child.Name:lower(), "%s+", "")
-                    
-                    -- REMOVIDO: O filtro de classe (child:IsA("LocalScript")). Se tem o nome certo, entra!
-                    if filtroTipo == "Block" and nomeLimpo == "block-place" then
-                        atendeFiltro = true
+                    if filtroTipo == "Block" and nomeScript == "block-place" then
+                        isValid = true
                         break
-                    elseif filtroTipo == "Seed" and nomeLimpo == "seed" then
-                        atendeFiltro = true
+                    elseif filtroTipo == "Seed" and nomeScript == "seed" then
+                        isValid = true
                         break
                     end
                 end
-            end)
-
-            if atendeFiltro then
+            end
+            
+            if isValid then
                 table.insert(toolsEncontradas, item.Name)
-                itensProcessados[item.Name] = true
+                processados[item.Name] = true
             end
         end
     end
 
-    pcall(function()
-        -- 1. Lê o que o boneco está a segurar na mão no momento
-        if player.Character then
-            for _, item in ipairs(player.Character:GetChildren()) do processarItem(item) end
+    -- Lê o que o player tem equipado (Character)
+    if player.Character then
+        for _, obj in ipairs(player.Character:GetChildren()) do
+            checarTool(obj)
         end
-        
-        -- 2. Lê tudo o que está dentro da pasta Backpack (A sua ordem direta!)
-        local backpack = player:FindFirstChild("Backpack")
-        if backpack then
-            for _, item in ipairs(backpack:GetChildren()) do processarItem(item) end
+    end
+
+    -- Lê a mochila do player (Backpack)
+    local bp = player:FindFirstChild("Backpack")
+    if bp then
+        for _, obj in ipairs(bp:GetChildren()) do
+            checarTool(obj)
         end
-    end)
+    end
 
     table.sort(toolsEncontradas)
     return toolsEncontradas
@@ -71,14 +71,15 @@ end
 
 function Manager:GetAllSeedsInGame()
     local allSeeds = {}
-    local rsTools = ReplicatedStorage:FindFirstChild("Tools")
+    -- REGRA 4: Acessa a pasta Tools do ReplicatedStorage
+    local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
     
-    if rsTools then
-        pcall(function()
-            for _, tool in ipairs(rsTools:GetChildren()) do
+    if toolsFolder then
+        for _, tool in ipairs(toolsFolder:GetChildren()) do
+            -- Aceitamos Tool, ou Model/Folder caso os Devs as tenham organizado em pastas
+            if tool:IsA("Tool") or tool:IsA("Folder") or tool:IsA("Model") then
                 for _, child in ipairs(tool:GetDescendants()) do
-                    local nomeLimpo = string.gsub(child.Name:lower(), "%s+", "")
-                    if nomeLimpo == "seed" then
+                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
                         if not table.find(allSeeds, tool.Name) then
                             table.insert(allSeeds, tool.Name)
                         end
@@ -86,7 +87,7 @@ function Manager:GetAllSeedsInGame()
                     end
                 end
             end
-        end)
+        end
     end
     
     table.sort(allSeeds)

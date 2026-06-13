@@ -25,19 +25,17 @@ function FazendaTab:Construir(paginaPai)
     -- ================= BLOCO 2: SEED =================
     local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
     
-    -- Ativado a pesquisa (o 'true' no fim)
     local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
     Componentes:CriarBotaoEstilizado("🔄 Atualizar Mochila", cSeed, zSeed, function()
         if Bot.Modules.Manager then 
-            pcall(function()
-                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-                DropdownSementes:Refresh(sementesPessoais)
-                
-                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-                PriorizeDropdown:Refresh(sementesGerais)
-            end)
+            -- PCALL REMOVIDO! Atualização direta e transparente
+            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+            DropdownSementes:Refresh(sementesPessoais)
+            
+            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+            PriorizeDropdown:Refresh(sementesGerais)
         end
     end)
 
@@ -93,15 +91,13 @@ function FazendaTab:Construir(paginaPai)
 
     local function AtualizarListaSavesFazenda()
         if Bot.Modules.PlotManager and plotDropdownFazenda then
-            pcall(function()
-                local plots = Bot.Modules.PlotManager:ObterTodos()
-                local lista = {}
-                for nome, _ in pairs(plots) do 
-                    if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
-                end
-                if #lista == 0 then lista = {"Nenhum"} end
-                plotDropdownFazenda:Refresh(lista)
-            end)
+            local plots = Bot.Modules.PlotManager:ObterTodos()
+            local lista = {}
+            for nome, _ in pairs(plots) do 
+                if nome:sub(1, 8) == "Farming_" then table.insert(lista, nome:sub(9)) end
+            end
+            if #lista == 0 then lista = {"Nenhum"} end
+            plotDropdownFazenda:Refresh(lista)
         end
     end
 
@@ -142,15 +138,14 @@ function FazendaTab:Construir(paginaPai)
     Componentes:CriarCheckboxMetade("Auto Load Start", rSave2F, State.FarmSettings, "AutoUseSelectedSave", zSave)
 
     task.spawn(function()
-        task.wait(1.5) 
-        pcall(function() AtualizarListaSavesFazenda() end)
+        task.wait(1.5)
+        AtualizarListaSavesFazenda()
+        
         if Bot.Modules.Manager then
-            pcall(function()
-                local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
-                local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
-                DropdownSementes:Refresh(sementesPessoais)
-                PriorizeDropdown:Refresh(sementesGerais)
-            end)
+            local sementesGerais = Bot.Modules.Manager:GetAllSeedsInGame()
+            local sementesPessoais = Bot.Modules.Manager:GetInventoryTools("Seed")
+            DropdownSementes:Refresh(sementesPessoais)
+            PriorizeDropdown:Refresh(sementesGerais)
         end
     end)
 end
