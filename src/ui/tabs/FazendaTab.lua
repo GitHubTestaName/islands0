@@ -6,7 +6,6 @@ function FazendaTab:Construir(paginaPai)
     local State = Bot.State
     local Componentes = Bot.Modules.UIComponents
 
-    -- Garante que o contador de layout comece do zero para esta aba!
     Componentes:ResetOrder()
 
     -- ================= BLOCO 1: MAIN FARM =================
@@ -26,7 +25,7 @@ function FazendaTab:Construir(paginaPai)
     -- ================= BLOCO 2: SEED =================
     local cSeed, zSeed = Componentes:CriarCard("SEED", paginaPai)
     
-    -- O 'true' no final ativa a barra de pesquisa que criamos na última aula!
+    -- Ativado a pesquisa (o 'true' no fim)
     local DropdownSementes = Componentes:CriarDropdown("Sementes Pessoais", cSeed, State, "SementeSelecionada", true, zSeed, true)
     local PriorizeDropdown = Componentes:CriarDropdown("Priorize Plant", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed, true)
     
@@ -54,7 +53,6 @@ function FazendaTab:Construir(paginaPai)
     Componentes:CriarInputMetade("Vel. Voo:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
     
     local rDelay3 = Componentes:CriarGridDupla(cDelay, zDelay)
-    -- BLINDAGEM: Verifica se o Scanner existe antes de escanear!
     Componentes:CriarCheckboxMetade("Esconder Nums", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
         if State.ScannerFazenda and type(State.ScannerFazenda.EscanearArea) == "function" then 
             State.ScannerFazenda:EscanearArea() 
@@ -80,7 +78,6 @@ function FazendaTab:Construir(paginaPai)
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Nome do seu Plot...", rSaveNome, zSave)
     
-    -- Botão de Salvar concatenado e ajustado
     local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
     btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0)
     btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
@@ -144,9 +141,8 @@ function FazendaTab:Construir(paginaPai)
     local rSave2F = Componentes:CriarGridDupla(cSave, zSave)
     Componentes:CriarCheckboxMetade("Auto Load Start", rSave2F, State.FarmSettings, "AutoUseSelectedSave", zSave)
 
-    -- CARREGAMENTO SEGURO
     task.spawn(function()
-        task.wait(1.5) -- Espera a UI respirar para não sobrecarregar
+        task.wait(1.5) 
         pcall(function() AtualizarListaSavesFazenda() end)
         if Bot.Modules.Manager then
             pcall(function()

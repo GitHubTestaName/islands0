@@ -1,7 +1,6 @@
 -- src/ui/Components.lua
 local Components = {}
 
--- ================= VARIÁVEIS DE TEMA (DESIGN SYSTEM) =================
 Components.Theme = {
     CardBG = Color3.fromRGB(32, 32, 32),
     CardStroke = Color3.fromRGB(60, 60, 60),
@@ -37,8 +36,6 @@ function Components:GetInnerOrder()
     self.innerOrderGlobal = self.innerOrderGlobal + 1 
     return self.innerOrderGlobal 
 end
-
--- ================= CONSTRUTORES DE INTERFACE =================
 
 function Components:CriarCard(titulo, parent)
     local order, baseZ = self:GetOrdem()
@@ -151,7 +148,7 @@ function Components:CriarBotaoPequeno(texto, cor, parentRow, cardZBase, callback
 end
 
 function Components:CriarToggleLargo(texto, parent, stateTable, stateKey, cardZBase, callback)
-    stateTable = stateTable or {} -- BLINDAGEM
+    stateTable = stateTable or {}
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(0.95, 0, 0, 34)
     local isAtivo = stateTable[stateKey]
@@ -177,7 +174,7 @@ function Components:CriarToggleLargo(texto, parent, stateTable, stateKey, cardZB
 end
 
 function Components:CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZBase, callback)
-    stateTable = stateTable or {} -- BLINDAGEM: Nunca mais vai crachar!
+    stateTable = stateTable or {}
     local frame = Instance.new("Frame", parentRow)
     frame.Size = UDim2.new(0.5, -2.5, 1, 0)
     frame.BackgroundColor3 = self.Theme.PanelBG
@@ -216,7 +213,7 @@ function Components:CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, 
 end
 
 function Components:CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefault, cardZBase)
-    stateTable = stateTable or {} -- BLINDAGEM
+    stateTable = stateTable or {}
     local frame = Instance.new("Frame", parentRow)
     frame.Size = UDim2.new(0.5, -2.5, 1, 0)
     frame.BackgroundColor3 = self.Theme.PanelBG
@@ -273,7 +270,7 @@ function Components:CriarItemDropdown(texto, parent, zIndexBase)
     itemBtn.Size = UDim2.new(1, 0, 0, 32)
     itemBtn.BackgroundColor3 = Components.Theme.PanelBG 
     itemBtn.BorderSizePixel = 0
-    itemBtn.Text = texto
+    itemBtn.Text = "   " .. texto
     itemBtn.TextColor3 = Components.Theme.TextWhite
     itemBtn.Font = Enum.Font.SourceSansSemibold
     itemBtn.TextSize = 13
@@ -281,19 +278,13 @@ function Components:CriarItemDropdown(texto, parent, zIndexBase)
     itemBtn.ZIndex = zIndexBase
     itemBtn.AutoButtonColor = true 
 
-    -- As bordas redondinhas para cada item da lista!
     Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 6)
-
-    -- O Padding para o texto não ficar colado à parede!
-    local pad = Instance.new("UIPadding", itemBtn)
-    pad.PaddingLeft = UDim.new(0, 10)
-    pad.PaddingRight = UDim.new(0, 10)
 
     return itemBtn
 end
 
 function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
-    stateTable = stateTable or {} -- BLINDAGEM
+    stateTable = stateTable or {}
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(0.95, 0, 0, 32)
     frame.BackgroundTransparency = 1
@@ -368,7 +359,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     scroll.ScrollBarImageColor3 = self.Theme.AccentBlue
     scroll.Active = true 
 
-    -- Suavidade: Gaps entre os itens da lista
+    -- Layout com padding entre os itens
     local listLayout = Instance.new("UIListLayout", scroll)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 5) 
@@ -425,14 +416,18 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
         for _, itemNome in ipairs(itemsToRender) do
             local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 12)
             
-            table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = itemBtn.BackgroundColor3})
+            -- AQUI ESTÁ A CORREÇÃO QUE ANULOU O ERRO 435!
+            -- Salva a cor original (Components.Theme.PanelBG) numa variável segura e independente
+            local corDeFundoOriginal = itemBtn.BackgroundColor3 
+            
+            table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = corDeFundoOriginal})
             
             local function applyVisual()
                 if isMulti then
-                    if stateTable[stateKey][itemNome] then
+                    if stateTable[stateKey] and stateTable[stateKey][itemNome] then
                         itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
                     else
-                        itemBtn.BackgroundColor3 = itemBtn.bg
+                        itemBtn.BackgroundColor3 = corDeFundoOriginal -- USA A VARIÁVEL SEGURA!
                     end
                 end
             end
@@ -444,6 +439,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                 if isMulti then
                     if itemNome == "All" then stateTable[stateKey] = {["All"] = true}
                     else
+                        if not stateTable[stateKey] then stateTable[stateKey] = {} end
                         stateTable[stateKey]["All"] = nil
                         stateTable[stateKey][itemNome] = not stateTable[stateKey][itemNome]
                     end
@@ -451,7 +447,7 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                         if stateTable[stateKey][obj.nome] then
                             obj.btn.BackgroundColor3 = Components.Theme.AccentBlue
                         else
-                            obj.btn.BackgroundColor3 = obj.bg
+                            obj.btn.BackgroundColor3 = obj.bg -- Aqui funciona porque obj é a nossa tabela personalizada!
                         end
                     end
                     atualizarMainText()
