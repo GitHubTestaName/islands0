@@ -9,23 +9,47 @@ function FazendaTab:Construir(paginaPai)
 
     Componentes:ResetOrder()
 
-    -- =================== CONTROLE GERAL ===================
-    local cFarm, zFarm = Componentes:CriarCard("CONTROLE DA FAZENDA (VERDE)", paginaPai)
+    -- ================= CAIXA 1: AÇÕES (AUTO-FARM) =================
+    local cFarm, zFarm = Componentes:CriarCard("AÇÕES (PLANTAÇÕES)", paginaPai)
     
-    Componentes:CriarBotaoEstilizado("🟩 Ligar/Desligar Cubo Seletor (Verde)", cFarm, zFarm, function() 
-        if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
-    end)
-    Componentes:CriarControlesEspaciais(cFarm, zFarm, "ScannerFazenda")
-    
-    Componentes:CriarToggleLargo("🌾 Auto-Fazenda Principal", cFarm, State, "AutoFarmingCrops", zFarm, function(v) 
+    Componentes:CriarToggleLargo("🌾 Auto Fazenda", cFarm, State, "AutoFarmingCrops", zFarm, function(v) 
         if Bot.Modules.Farmer then Bot.Modules.Farmer:AlternarAutoFazenda(v) end 
     end)
-    Componentes:CriarBotaoEstilizado("🚜 Arar Terra dentro do Seletor Verde", cFarm, zFarm, function() 
+    Componentes:CriarBotaoEstilizado("🚜 Arar Terra Rápido", cFarm, zFarm, function() 
         if Bot.Modules.Farmer then Bot.Modules.Farmer:ArarTerra() end 
     end)
 
-    -- =================== SAVES E PLOTS (A MÁGICA DOS LOGS E ROTINAS) ===================
-    local cFarmSaves, zFarmSaves = Componentes:CriarCard("SAVER DE TERRAS & PLOTS", paginaPai)
+    -- Caixa Segura das Sementes Com Elevado Z-Index Pro Dropdown Sobreviver sobre Tudo:
+    local dropPessoal = Componentes:CriarDropdown("Da Sua Mochila:", cFarm, State, "SementeSelecionada", true, zFarm + 60, true)
+    local dropPriorize = Componentes:CriarDropdown("Busca Geral Alvo:", cFarm, State.FarmSettings, "PrioritizePlant", false, zFarm + 40, true)
+    
+    Componentes:CriarBotaoEstilizado("🔄 Escanear Sementes Novamente", cFarm, zFarm, function()
+        if Manager then
+            dropPessoal:Refresh(Manager:GetInventoryTools("Seed"))
+            local globais = Manager:GetAllSeedsInGame()
+            table.insert(globais, 1, "Nenhum") 
+            dropPriorize:Refresh(globais)
+            Manager:AtualizarStatus("🌱 Banco de Sementes Escaneado e Atualizado!")
+        end
+    end)
+
+
+    -- ================= CAIXA 2: O SELETOR =================
+    local cSelVerde, zSelVerde = Componentes:CriarCard("CONTROLE DO SELETOR VERDE", paginaPai)
+    
+    Componentes:CriarBotaoEstilizado("🟩 Exibir / Ocultar Cubo", cSelVerde, zSelVerde, function() 
+        if State.ScannerFazenda then State.ScannerFazenda:CriarSeletorFrontal() end 
+    end)
+    Componentes:CriarControlesEspaciais(cSelVerde, zSelVerde, "ScannerFazenda")
+    
+    local rCheckSelV = Componentes:CriarGridDupla(cSelVerde, zSelVerde)
+    Componentes:CriarCheckboxMetade("Ocultar Números", rCheckSelV, State.ScannerFazenda, "HideNumbers", zSelVerde, function()
+        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
+    end)
+
+
+    -- ================= CAIXA 3: SISTEMA DE SAVES (PLOT VERDE) =================
+    local cFarmSaves, zFarmSaves = Componentes:CriarCard("GERENCIADOR DE TERRAS", paginaPai)
     
     local rSaveNomeF = Instance.new("Frame", cFarmSaves)
     rSaveNomeF.Size = UDim2.new(0.95, 0, 0, 32)
@@ -33,10 +57,10 @@ function FazendaTab:Construir(paginaPai)
     rSaveNomeF.ZIndex = zFarmSaves + 2
     rSaveNomeF.LayoutOrder = Componentes:GetInnerOrder()
     
-    local inputPlotFarming = Componentes:CriarInputLargo("Escreva Nome da Área...", rSaveNomeF, zFarmSaves)
-    local plotDropdownFarming = Componentes:CriarDropdown("Lista de Saves de Farm", cFarmSaves, State.FarmSettings, "CurrentSaveName", false, zFarmSaves, false)
+    local inputPlotFarming = Componentes:CriarInputLargo("Nome do Save...", rSaveNomeF, zFarmSaves)
+    local plotDropdownFarming = Componentes:CriarDropdown("Terras Salvas", cFarmSaves, State.FarmSettings, "CurrentSaveName", false, zFarmSaves + 20, false)
 
-    local function AtualizarListaSavesFarming()
+    local function AtualizarListaFarming()
         if Bot.Modules.PlotManager and plotDropdownFarming then
             local plots = Bot.Modules.PlotManager:ObterTodos()
             local lista = {}
@@ -48,102 +72,73 @@ function FazendaTab:Construir(paginaPai)
         end
     end
 
-    -- [Ação]: SALVAR NOVO
-    local btnSavePlotFarm = Componentes:CriarBotaoEstilizado("💾 Salvar Plot", rSaveNomeF, zFarmSaves, function()
-        local nomePuro = inputPlotFarming.Text
+    local btnSaveF = Componentes:CriarBotaoEstilizado("💾 Salvar", rSaveNomeF, zFarmSaves, function()
+        local nomeStr = inputPlotFarming.Text
         local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
         
-        if nomePuro == "" then
-            if Manager then Manager:AtualizarStatus("❌ ERRO: Escreva um nome na caixa!") end return
+        if nomeStr == "" then
+            if Manager then Manager:AtualizarStatus("❌ ERRO: Faltou um Nome!") end return
         elseif not cubo then
-            if Manager then Manager:AtualizarStatus("❌ ERRO: Crie o cubo na tela primeiro!") end return
+            if Manager then Manager:AtualizarStatus("❌ ERRO: Crie o cubo Seletor!") end return
         end
 
-        Bot.Modules.PlotManager:SalvarPlot("Farming_" .. nomePuro, cubo.Position, cubo.Size)
-        AtualizarListaSavesFarming()
-        if Manager then Manager:AtualizarStatus("✅ SAVE DA FAZENDA: [" .. nomePuro .. "] Gravado!") end
+        Bot.Modules.PlotManager:SalvarPlot("Farming_" .. nomeStr, cubo.Position, cubo.Size)
+        AtualizarListaFarming()
+        if Manager then Manager:AtualizarStatus("✅ SUCESSO: Fazenda '" .. nomeStr .. "' foi arquivada.") end
         inputPlotFarming.Text = "" 
     end)
-    btnSavePlotFarm.Size = UDim2.new(0.35, 0, 1, 0)
-    btnSavePlotFarm.Position = UDim2.new(0.65, 5, 0, 0)
-    btnSavePlotFarm.BackgroundColor3 = Color3.fromRGB(0, 160, 50)
+    btnSaveF.Size = UDim2.new(0.35, 0, 1, 0)
+    btnSaveF.Position = UDim2.new(0.65, 5, 0, 0)
+    btnSaveF.BackgroundColor3 = Color3.fromRGB(0, 150, 60)
 
     local rAcoesF = Componentes:CriarGridTripla(cFarmSaves, zFarmSaves)
     
-    -- [Ação]: CARREGAR O DROP ATUAL NO MAPA
-    Componentes:CriarBotaoPequeno("Carregar", Color3.fromRGB(40, 150, 80), rAcoesF, zFarmSaves, function()
+    Componentes:CriarBotaoPequeno("Load", Color3.fromRGB(40, 150, 80), rAcoesF, zFarmSaves, function()
         local sn = State.FarmSettings.CurrentSaveName
-        if not sn or sn == "Nenhum" or sn == "Carregando..." then 
-            if Manager then Manager:AtualizarStatus("❌ Selecione um save válido na lista!") end return 
-        end
+        if not sn or sn == "Nenhum" then return end
         local p = Bot.Modules.PlotManager:ObterTodos()["Farming_" .. sn]
         if p and State.ScannerFazenda then 
             State.ScannerFazenda:CarregarPlot(Vector3.new(p.PosX, p.PosY, p.PosZ), Vector3.new(p.SizeX, p.SizeY, p.SizeZ)) 
-            if Manager then Manager:AtualizarStatus("✅ LOAD CONCLUÍDO: Plot [" .. sn .. "]") end
-        else
-            if Manager then Manager:AtualizarStatus("❌ Erro ao achar os dados do Save!") end
+            if Manager then Manager:AtualizarStatus("✅ LOAD: Fazenda '" .. sn .. "' armada!") end
         end
     end)
-    
-    -- [Ação]: REESCREVER PLOT ATUAL
-    Componentes:CriarBotaoPequeno("Substituir", Color3.fromRGB(200, 120, 20), rAcoesF, zFarmSaves, function()
-        local sn = State.FarmSettings.CurrentSaveName
-        local cubo = State.ScannerFazenda and State.ScannerFazenda.AncoraPart
-        if not sn or sn == "Nenhum" then 
-            if Manager then Manager:AtualizarStatus("❌ Selecione na lista qual reescrever!") end return 
-        elseif not cubo then
-            if Manager then Manager:AtualizarStatus("❌ Crie o cubo primeiro na nova posição!") end return
-        end
-        
+    Componentes:CriarBotaoPequeno("Over-write", Color3.fromRGB(200, 120, 20), rAcoesF, zFarmSaves, function()
+        local sn, cubo = State.FarmSettings.CurrentSaveName, State.ScannerFazenda and State.ScannerFazenda.AncoraPart
+        if not sn or sn == "Nenhum" or not cubo then return end
         Bot.Modules.PlotManager:SalvarPlot("Farming_" .. sn, cubo.Position, cubo.Size) 
-        if Manager then Manager:AtualizarStatus("🔄 PLOT SOBREPOSTO: O save [" .. sn .. "] foi modificado!") end
+        if Manager then Manager:AtualizarStatus("🔄 ATUALIZADO: Regravou local da Fazenda '".. sn .."'.") end
     end)
-    
-    -- [Ação]: DELETAR PLOT ATUAL DA LISTA
-    Componentes:CriarBotaoPequeno("Excluir", Color3.fromRGB(200, 50, 50), rAcoesF, zFarmSaves, function()
+    Componentes:CriarBotaoPequeno("Delete", Color3.fromRGB(200, 50, 50), rAcoesF, zFarmSaves, function()
         local sn = State.FarmSettings.CurrentSaveName
         if not sn or sn == "Nenhum" then return end
         Bot.Modules.PlotManager:DeletarPlot("Farming_" .. sn)
         State.FarmSettings.CurrentSaveName = "Nenhum"
-        AtualizarListaSavesFarming()
-        if Manager then Manager:AtualizarStatus("🗑️ PLOT DELETADO: Apagamos [" .. sn .. "] com sucesso!") end
+        AtualizarListaFarming()
+        if Manager then Manager:AtualizarStatus("🗑️ DELETADO: Fechamos de vez o plot '" .. sn .."'.") end
     end)
     
-    local rowFAutoSave = Componentes:CriarGridDupla(cFarmSaves, zFarmSaves)
-    Componentes:CriarCheckboxMetade("Autoload na Entrada", rowFAutoSave, State.FarmSettings, "AutoUseSelectedSave", zFarmSaves)
-    Componentes:CriarCheckboxMetade("Esconder Numbers plot", rowFAutoSave, State.ScannerFazenda, "HideNumbers", zFarmSaves, function()
-        if State.ScannerFazenda then State.ScannerFazenda:EscanearArea() end
-    end)
+    local rCheckFarmLoad = Componentes:CriarGridDupla(cFarmSaves, zFarmSaves)
+    Componentes:CriarCheckboxMetade("Autoload na Conexão", rCheckFarmLoad, State.FarmSettings, "AutoUseSelectedSave", zFarmSaves)
 
-    -- =================== CONFIGS DESEMPENHO E SEMENTES ===================
-    local cFarmCfg, zFarmCfg = Componentes:CriarCard("DESEMPENHO (FAZENDA)", paginaPai)
+
+    -- ================= CAIXA 4: COMPORTAMENTO AUTOMÁTICO =================
+    local cFarmCfg, zFarmCfg = Componentes:CriarCard("COMPORTAMENTO DA IA", paginaPai)
+    
     local rowF1 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
-    Componentes:CriarCheckboxMetade("Usar Voo Direcionado", rowF1, State.FarmSettings, "TweenToTarget", zFarmCfg)
-    Componentes:CriarInputMetade("Veloc. do Voo", rowF1, State.FarmSettings, "TweenSpeed", 20, zFarmCfg)
+    Componentes:CriarCheckboxMetade("Auto Tween Voo", rowF1, State.FarmSettings, "TweenToTarget", zFarmCfg)
+    Componentes:CriarInputMetade("Velocid. Bot", rowF1, State.FarmSettings, "TweenSpeed", 20, zFarmCfg)
+    
     local rowF2 = Componentes:CriarGridDupla(cFarmCfg, zFarmCfg)
-    Componentes:CriarCheckboxMetade("Arar + Substituir", rowF2, State.FarmSettings, "AutoReplace", zFarmCfg)
-    Componentes:CriarCheckboxMetade("Colocar Gramas", rowF2, State.FarmSettings, "PlaceGrass", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Repor/Limpar Fim", rowF2, State.FarmSettings, "AutoReplace", zFarmCfg)
+    Componentes:CriarCheckboxMetade("Construir Terra Pura", rowF2, State.FarmSettings, "PlaceGrass", zFarmCfg)
     
-    local cSeed, zSeed = Componentes:CriarCard("CONTROLE: PLANTIOS DA SEMENTE", paginaPai)
-    local dropPessoal = Componentes:CriarDropdown("Semente Na Mochila:", cSeed, State, "SementeSelecionada", true, zSeed + 100, true)
-    local dropPriorize = Componentes:CriarDropdown("Geral Jogo/Prioridades:", cSeed, State.FarmSettings, "PrioritizePlant", false, zSeed + 50, true)
-    
-    Componentes:CriarBotaoEstilizado("🔄 Scan/Sincronizar Listas de Sementes", cSeed, zSeed, function()
-        if Bot.Modules.Manager then
-            dropPessoal:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"))
-            local globals = Bot.Modules.Manager:GetAllSeedsInGame()
-            table.insert(globals, 1, "Nenhum") 
-            dropPriorize:Refresh(globals)
-            Manager:AtualizarStatus("🌱 Banco de Sementes Escaneado e Atualizado!")
-        end
-    end)
-
+    -- Auto Load Inicial de dados e Preenchimento Listas.
     task.spawn(function()
         task.wait(1.5) 
-        AtualizarListaSavesFarming()
-        if Bot.Modules.Manager then
-            dropPessoal:Refresh(Bot.Modules.Manager:GetInventoryTools("Seed"))
-            local glob = Bot.Modules.Manager:GetAllSeedsInGame()
+        AtualizarListaFarming()
+        if Manager then
+            dropPessoal:Refresh(Manager:GetInventoryTools("Seed"))
+            local glob = Manager:GetAllSeedsInGame()
             table.insert(glob, 1, "Nenhum")
             dropPriorize:Refresh(glob)
         end
