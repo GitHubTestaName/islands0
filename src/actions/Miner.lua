@@ -13,7 +13,7 @@ local function IrParaAlvo(alvoPos)
     if not hrp then return end
 
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 12 then
+    if dist > 15 then -- IGUALADO AO FARMER: Raio de 5 Blocos!
         hrp.Anchored = true
         local speed = State.MiningSettings.TweenSpeed or 20
         local tempo = dist / speed
@@ -68,14 +68,13 @@ function Miner:ExecutarLoop()
                 end
                 
                 local basePos = bloco:IsA("Model") and bloco:GetPivot().Position or bloco.Position
-                IrParaAlvo(basePos) -- VOA ATÉ A PEDRA ANTES DE BATER!
+                IrParaAlvo(basePos) 
                 
                 tentativas = tentativas + 1
                 if Manager then
                     Manager:AtualizarStatus(string.format("[%d/%d] %s | HP: %s | Hit: %d", i, #Scanner.ListaBlocos, dados.Nome, tostring(hpAtual), tentativas))
                 end
 
-                -- A SOLUÇÃO DO FANTASMA: Se bater demais e o servidor negar, força um re-scan limpo!
                 if tentativas > 50 then 
                     if Manager then Manager:AtualizarStatus("Gargalo! Recalculando pedras...") end
                     Scanner:EscanearArea() 

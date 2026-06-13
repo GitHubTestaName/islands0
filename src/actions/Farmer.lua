@@ -13,12 +13,14 @@ local function IrParaAlvo(alvoPos)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
+    -- ALCANCE TESTADO (7 blocos max - 2 margem = 5 blocos de raio = 15 studs)
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 13 then -- Aumentei ligeiramente o limite seguro para evitar paradas bruscas
+    if dist > 15 then 
         hrp.Anchored = true
         local speed = State.FarmSettings.TweenSpeed or 20
         local tempo = dist / speed
         
+        -- Paira exatamente 6 studs (2 blocos) acima da planta
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
         local hoverCFrame = CFrame.new(hoverPos, alvoPos)
         
@@ -142,7 +144,6 @@ function Farmer:AlternarAutoFazenda(valor)
                 local minCoord = Scanner.AncoraPart.Position - (Scanner.AncoraPart.Size / 2)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
 
-                -- A MAGIA DO ZIG-ZAG (SNAKE PATH) ACONTECE AQUI
                 local zDirection = 1 
 
                 for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
@@ -151,7 +152,6 @@ function Farmer:AlternarAutoFazenda(valor)
                     for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
                         if not State.AutoFarmingCrops then break end
                         
-                        -- Define o ponto de partida e de chegada do eixo Z baseado na direção atual
                         local startZ = (zDirection == 1) and (minCoord.Z + Config.BLOCK_SIZE/2) or maxCoord.Z
                         local endZ = (zDirection == 1) and maxCoord.Z or (minCoord.Z + Config.BLOCK_SIZE/2)
                         local stepZ = (zDirection == 1) and Config.BLOCK_SIZE or -Config.BLOCK_SIZE
@@ -227,7 +227,6 @@ function Farmer:AlternarAutoFazenda(valor)
                             end
 
                         end
-                        -- Inverte a direção no final de cada fileira para fazer a cobra (Zig-Zag)
                         zDirection = zDirection * -1
                     end
                 end
