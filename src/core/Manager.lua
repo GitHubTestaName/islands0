@@ -23,14 +23,12 @@ function Manager:GetInventoryTools(filtroTipo)
     local processados = {}
 
     local function checarTool(item)
-        -- REGRA 1: Exigir que seja uma "Tool" evita que o script leia milhares de peças da roupa/corpo do personagem
         if item:IsA("Tool") and not processados[item.Name] then
             local isValid = false
             
-            -- REGRA 2: Vasculha tudo dentro da Tool
             for _, child in ipairs(item:GetDescendants()) do
-                -- REGRA 3: O objeto tem que ser obrigatoriamente um LocalScript
-                if child:IsA("LocalScript") then
+                -- A MAGIA ESTÁ AQUI: LuaSourceContainer engloba LocalScript, ModuleScript e Script!
+                if child:IsA("LuaSourceContainer") then
                     local nomeScript = child.Name:lower()
                     
                     if filtroTipo == "Block" and nomeScript == "block-place" then
@@ -71,15 +69,14 @@ end
 
 function Manager:GetAllSeedsInGame()
     local allSeeds = {}
-    -- REGRA 4: Acessa a pasta Tools do ReplicatedStorage
     local toolsFolder = ReplicatedStorage:FindFirstChild("Tools")
     
     if toolsFolder then
         for _, tool in ipairs(toolsFolder:GetChildren()) do
-            -- Aceitamos Tool, ou Model/Folder caso os Devs as tenham organizado em pastas
             if tool:IsA("Tool") or tool:IsA("Folder") or tool:IsA("Model") then
                 for _, child in ipairs(tool:GetDescendants()) do
-                    if child:IsA("LocalScript") and child.Name:lower() == "seed" then
+                    -- LuaSourceContainer de novo para garantir que pega todas as sementes globais!
+                    if child:IsA("LuaSourceContainer") and child.Name:lower() == "seed" then
                         if not table.find(allSeeds, tool.Name) then
                             table.insert(allSeeds, tool.Name)
                         end
