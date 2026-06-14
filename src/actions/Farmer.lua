@@ -1,5 +1,6 @@
 -- src/actions/Farmer.lua
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Farmer = {}
 local Bot = _G.IslandsBot
 local State = Bot.State
@@ -14,14 +15,33 @@ local function IrParaAlvo(alvoPos)
     if not hrp then return end
 
     local dist = (hrp.Position - alvoPos).Magnitude
-    if dist > 5 then -- Só tweema se o centro do Cluster estiver longo
-        hrp.Anchored = true
+    if dist > 5 then
+        -- CORREÇÃO: Não ancorar! Deixar solto para o servidor registrar o movimento.
+        hrp.Anchored = false
+        
         local speed = State.FarmSettings.TweenSpeed or 20
         local tempo = dist / speed
         
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
-        -- CORREÇÃO CRÍTICA DO TWEEN: Removemos o "LookAt". O personagem não deita mais de cara pro chão!
         local hoverCFrame = CFrame.new(hoverPos)
+        
+        -- Adiciona BodyVelocity para o boneco flutuar sem a gravidade puxar ele para baixo
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Parent = hrp
+
+        -- Ativa NoClip temporário para atravessar árvores/paredes enquanto voa
+        local noclipConnection
+        noclipConnection = RunService.Stepped:Connect(function()
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
         
         local tween = game:GetService("TweenService"):Create(
             hrp, 
@@ -37,6 +57,11 @@ local function IrParaAlvo(alvoPos)
         end
         
         if not State.AutoFarmingCrops then tween:Cancel() end
+        
+        -- Limpeza pós-voo (Devolve a física normal ao boneco)
+        if noclipConnection then noclipConnection:Disconnect() end
+        if bodyVel then bodyVel:Destroy() end
+        hrp.Velocity = Vector3.new(0, 0, 0)
     end
 end
 
@@ -142,9 +167,8 @@ function Farmer:AlternarAutoFazenda(valor)
                 local maxCoord = Scanner.AncoraPart.Position + (Scanner.AncoraPart.Size / 2)
                 
                 local setores = {}
-                local step = 15 -- 5 Blocos (O raio de alcance de 15 studs!)
+                local step = 15
 
-                -- Mapeia cada bloco da plantação para um Setor (Cluster)
                 for y = minCoord.Y + (Config.BLOCK_SIZE/2), maxCoord.Y, Config.BLOCK_SIZE do
                     for x = minCoord.X + (Config.BLOCK_SIZE/2), maxCoord.X, Config.BLOCK_SIZE do
                         for z = minCoord.Z + (Config.BLOCK_SIZE/2), maxCoord.Z, Config.BLOCK_SIZE do
@@ -158,7 +182,6 @@ function Farmer:AlternarAutoFazenda(valor)
                             local plantaObj = cachePlantas[keyPlanta]
                             local blocoSolo = cacheSolos[keySolo]
 
-                            -- Descobre se ESSE bloco precisa de ação
                             local temTrabalho = false
                             if plantaObj and plantaObj:FindFirstChild("Harvestable", true) then temTrabalho = true
                             elseif not blocoSolo and State.FarmSettings.PlaceGrass then temTrabalho = true
@@ -168,7 +191,6 @@ function Farmer:AlternarAutoFazenda(valor)
                                 elseif (nSolo:find("soil") or nSolo:find("plowed") or nSolo:find("farm")) and State.FarmSettings.AutoReplace and toolEmUso then temTrabalho = true end
                             end
 
-                            -- Se tiver trabalho, adiciona a lista do Setor
                             if temTrabalho then
                                 local sx = math.floor((x - minCoord.X) / step) * step + minCoord.X + step/2
                                 local sz = math.floor((z - minCoord.Z) / step) * step + minCoord.Z + step/2
@@ -189,7 +211,6 @@ function Farmer:AlternarAutoFazenda(valor)
                 local listaSetores = {}
                 for _, s in pairs(setores) do table.insert(listaSetores, s) end
 
-                -- O BOT VOA PARA O SETOR MAIS PERTO DELE ATÉ LIMPAR TUDO
                 while #listaSetores > 0 and State.AutoFarmingCrops do
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
                     local posAtual = hrp and hrp.Position or Scanner.AncoraPart.Position
@@ -209,7 +230,6 @@ function Farmer:AlternarAutoFazenda(valor)
                     for _, dados in ipairs(setorAtual.tarefas) do
                         if not State.AutoFarmingCrops then break end
                         
-                        -- Segurança: Se o player desligou o Voo, só processa se estiver perto!
                         if not State.FarmSettings.TweenToTarget then
                             local pAtual = (char and char:FindFirstChild("HumanoidRootPart")) and char.HumanoidRootPart.Position or posAtual
                             if (pAtual - dados.pPlanta).Magnitude > 18 then continue end
@@ -248,16 +268,10 @@ function Farmer:AlternarAutoFazenda(valor)
                         end
                     end
                 end
-                
                 task.wait(1)
             end
             
             if Manager then Manager:AtualizarStatus("Auto-Fazenda Desligada") end
-            local charAtual = LocalPlayer.Character
-            if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
-                charAtual.HumanoidRootPart.Anchored = false
-            end
-            
         end)
     else
         if Manager then Manager:AtualizarStatus("Ocioso") end

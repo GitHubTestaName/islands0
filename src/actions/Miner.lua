@@ -1,5 +1,6 @@
 -- src/actions/Miner.lua
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Miner = {}
 local Bot = _G.IslandsBot
 local State = Bot.State
@@ -14,13 +15,32 @@ local function IrParaAlvo(alvoPos)
 
     local dist = (hrp.Position - alvoPos).Magnitude
     if dist > 15 then
-        hrp.Anchored = true
+        -- CORREÇÃO: Não ancorar! Deixar solto para o servidor registrar o movimento.
+        hrp.Anchored = false
+        
         local speed = State.MiningSettings.TweenSpeed or 20
         local tempo = dist / speed
         
         local hoverPos = alvoPos + Vector3.new(0, 6, 0)
-        -- Correção Crítica: CFrame Flat sem rotação absurda
         local hoverCFrame = CFrame.new(hoverPos)
+        
+        -- Adiciona BodyVelocity para o boneco flutuar sem a gravidade puxar ele para baixo
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Parent = hrp
+
+        -- Ativa NoClip temporário para atravessar blocos e minérios
+        local noclipConnection
+        noclipConnection = RunService.Stepped:Connect(function()
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
         
         local tween = game:GetService("TweenService"):Create(
             hrp, 
@@ -34,7 +54,13 @@ local function IrParaAlvo(alvoPos)
         while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do
             task.wait(0.05)
         end
+        
         if not State.Minerando then tween:Cancel() end
+        
+        -- Limpeza pós-voo
+        if noclipConnection then noclipConnection:Disconnect() end
+        if bodyVel then bodyVel:Destroy() end
+        hrp.Velocity = Vector3.new(0, 0, 0)
     end
 end
 
@@ -75,7 +101,7 @@ function Miner:ExecutarLoop()
             while bloco and bloco:IsDescendantOf(workspace) do
                 if not State.Minerando then break end
                 
-                -- Se não usa tween, e a pedra está muito longe do boneco agora, pula a pedra
+                -- Checagem de segurança (Impede mandar Hits invalidos de longe se desativar o Tween)
                 if not State.MiningSettings.TweenToTarget then
                     local pAtual = (char and char:FindFirstChild("HumanoidRootPart")) and char.HumanoidRootPart.Position or basePos
                     if (pAtual - basePos).Magnitude > 18 then break end
@@ -118,11 +144,6 @@ function Miner:ExecutarLoop()
             if dados.Marcador and dados.Marcador.Parent then dados.Marcador:Destroy() end
         end
         task.wait(0.2)
-    end
-    
-    local charAtual = LocalPlayer.Character
-    if charAtual and charAtual:FindFirstChild("HumanoidRootPart") then
-        charAtual.HumanoidRootPart.Anchored = false
     end
 end
 
