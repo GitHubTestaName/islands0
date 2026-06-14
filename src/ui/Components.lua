@@ -10,7 +10,7 @@ Components.Theme = {
     ToggleOn = Color3.fromRGB(40, 140, 70),
     ToggleOff = Color3.fromRGB(160, 50, 50),
     TextWhite = Color3.fromRGB(255, 255, 255),
-    TextDimmed = Color3.fromRGB(200, 200, 200),
+    TextDimmed = Color3.fromRGB(180, 180, 180),
     InputBG = Color3.fromRGB(20, 20, 20),
     PanelBG = Color3.fromRGB(45, 45, 45),
     DropdownBG = Color3.fromRGB(25, 25, 25)
@@ -21,36 +21,27 @@ Components.zIndexGlobal = 1000
 Components.innerOrderGlobal = 0
 
 function Components:ResetOrder()
-    self.layoutOrderGlobal = 0
-    self.zIndexGlobal = 1000
-    self.innerOrderGlobal = 0
+    self.layoutOrderGlobal = 0; self.zIndexGlobal = 1000; self.innerOrderGlobal = 0
 end
-
 function Components:GetOrdem() 
-    self.layoutOrderGlobal = self.layoutOrderGlobal + 1 
-    self.zIndexGlobal = self.zIndexGlobal - 10 
+    self.layoutOrderGlobal = self.layoutOrderGlobal + 1; self.zIndexGlobal = self.zIndexGlobal - 10 
     return self.layoutOrderGlobal, self.zIndexGlobal 
 end
-
 function Components:GetInnerOrder() 
-    self.innerOrderGlobal = self.innerOrderGlobal + 1 
-    return self.innerOrderGlobal 
+    self.innerOrderGlobal = self.innerOrderGlobal + 1; return self.innerOrderGlobal 
 end
 
 function Components:CriarCard(titulo, parent)
     local order, baseZ = self:GetOrdem()
-    
     local card = Instance.new("Frame", parent)
     card.BackgroundColor3 = self.Theme.CardBG
     card.Size = UDim2.new(0, 240, 0, 0)
     card.LayoutOrder = order
     card.ZIndex = baseZ
-    card.ClipsDescendants = false 
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
     
     local stroke = Instance.new("UIStroke", card)
     stroke.Color = self.Theme.CardStroke
-    stroke.Thickness = 1
     
     local titleLabel = Instance.new("TextLabel", card)
     titleLabel.Size = UDim2.new(1, 0, 0, 30)
@@ -63,18 +54,13 @@ function Components:CriarCard(titulo, parent)
     titleLabel.ZIndex = baseZ + 1
 
     local div = Instance.new("Frame", card)
-    div.Size = UDim2.new(1, 0, 0, 1)
-    div.Position = UDim2.new(0, 0, 0, 30)
-    div.BackgroundColor3 = self.Theme.CardStroke
-    div.BorderSizePixel = 0
+    div.Size = UDim2.new(1, 0, 0, 1); div.Position = UDim2.new(0, 0, 0, 30)
+    div.BackgroundColor3 = self.Theme.CardStroke; div.BorderSizePixel = 0
     div.ZIndex = baseZ + 1
 
     local content = Instance.new("Frame", card)
-    content.Size = UDim2.new(1, 0, 0, 0)
-    content.Position = UDim2.new(0, 0, 0, 31)
-    content.BackgroundTransparency = 1
-    content.ZIndex = baseZ + 1
-    content.ClipsDescendants = false
+    content.Size = UDim2.new(1, 0, 0, 0); content.Position = UDim2.new(0, 0, 0, 31)
+    content.BackgroundTransparency = 1; content.ZIndex = baseZ + 1
 
     local cLayout = Instance.new("UIListLayout", content)
     cLayout.Padding = UDim.new(0, 8)
@@ -82,52 +68,53 @@ function Components:CriarCard(titulo, parent)
     cLayout.SortOrder = Enum.SortOrder.LayoutOrder 
 
     local pad = Instance.new("UIPadding", content)
-    pad.PaddingTop = UDim.new(0, 10)
-    pad.PaddingBottom = UDim.new(0, 10)
+    pad.PaddingTop = UDim.new(0, 10); pad.PaddingBottom = UDim.new(0, 10)
 
     cLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         content.Size = UDim2.new(1, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
         card.Size = UDim2.new(0, 240, 0, 31 + content.Size.Y.Offset)
     end)
-
     return content, baseZ
 end
 
+-- NOVO: Hierarquia Visual (Subtítulos para agrupar botões)
+function Components:CriarSubtitulo(texto, parent, cardZBase)
+    local lbl = Instance.new("TextLabel", parent)
+    lbl.Size = UDim2.new(0.95, 0, 0, 16)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "  " .. texto
+    lbl.TextColor3 = self.Theme.TextDimmed
+    lbl.Font = Enum.Font.SourceSansSemibold
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = cardZBase + 2
+    lbl.LayoutOrder = self:GetInnerOrder()
+    return lbl
+end
+
 function Components:CriarGridDupla(parent, cardZBase)
-    local f = Instance.new("Frame", parent)
-    f.Size = UDim2.new(0.95, 0, 0, 32)
-    f.BackgroundTransparency = 1
-    f.ZIndex = cardZBase + 2
-    f.LayoutOrder = self:GetInnerOrder()
+    local f = Instance.new("Frame", parent); f.Size = UDim2.new(0.95, 0, 0, 32); f.BackgroundTransparency = 1
+    f.ZIndex = cardZBase + 2; f.LayoutOrder = self:GetInnerOrder()
     local layout = Instance.new("UIListLayout", f)
-    layout.FillDirection = Enum.FillDirection.Horizontal
-    layout.Padding = UDim.new(0, 5) 
+    layout.FillDirection = Enum.FillDirection.Horizontal; layout.Padding = UDim.new(0, 5) 
     return f
 end
 
 function Components:CriarGridTripla(parent, cardZBase)
-    local f = Instance.new("Frame", parent)
-    f.Size = UDim2.new(0.95, 0, 0, 32)
-    f.BackgroundTransparency = 1
-    f.ZIndex = cardZBase + 2
-    f.LayoutOrder = self:GetInnerOrder()
+    local f = Instance.new("Frame", parent); f.Size = UDim2.new(0.95, 0, 0, 32); f.BackgroundTransparency = 1
+    f.ZIndex = cardZBase + 2; f.LayoutOrder = self:GetInnerOrder()
     local layout = Instance.new("UIListLayout", f)
-    layout.FillDirection = Enum.FillDirection.Horizontal
-    layout.Padding = UDim.new(0, 5)
+    layout.FillDirection = Enum.FillDirection.Horizontal; layout.Padding = UDim.new(0, 5)
     return f
 end
 
 function Components:CriarBotaoEstilizado(texto, parent, cardZBase, callback)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.95, 0, 0, 32)
-    btn.BackgroundColor3 = self.Theme.ButtonBG
-    btn.Text = texto
-    btn.TextColor3 = self.Theme.TextWhite
-    btn.Font = Enum.Font.SourceSansSemibold
-    btn.TextSize = 14
-    btn.BorderSizePixel = 0
-    btn.ZIndex = cardZBase + 2
-    btn.LayoutOrder = self:GetInnerOrder()
+    btn.Size = UDim2.new(0.95, 0, 0, 32); btn.BackgroundColor3 = self.Theme.ButtonBG
+    btn.Text = "  " .. texto; btn.TextColor3 = self.Theme.TextWhite
+    btn.Font = Enum.Font.SourceSansSemibold; btn.TextSize = 14
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.ZIndex = cardZBase + 2; btn.LayoutOrder = self:GetInnerOrder()
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     btn.MouseButton1Click:Connect(callback)
     return btn
@@ -135,14 +122,10 @@ end
 
 function Components:CriarBotaoPequeno(texto, cor, parentRow, cardZBase, callback)
     local b = Instance.new("TextButton", parentRow)
-    b.Size = UDim2.new(0.333, -3.3, 1, 0)
-    b.BackgroundColor3 = cor
-    b.Text = texto
-    b.TextColor3 = self.Theme.TextWhite
-    b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 13
-    b.ZIndex = cardZBase + 3
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+    b.Size = UDim2.new(0.333, -3.3, 1, 0); b.BackgroundColor3 = cor
+    b.Text = texto; b.TextColor3 = self.Theme.TextWhite
+    b.Font = Enum.Font.SourceSansBold; b.TextSize = 13
+    b.ZIndex = cardZBase + 3; Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
     b.MouseButton1Click:Connect(callback)
     return b
 end
@@ -154,13 +137,9 @@ function Components:CriarToggleLargo(texto, parent, stateTable, stateKey, cardZB
     local isAtivo = stateTable[stateKey]
     btn.BackgroundColor3 = isAtivo and self.Theme.ToggleOn or self.Theme.ToggleOff
     btn.Text = "  " .. texto .. (isAtivo and " [ON]" or " [OFF]")
-    btn.TextColor3 = self.Theme.TextWhite
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 14
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.BorderSizePixel = 0
-    btn.ZIndex = cardZBase + 2
-    btn.LayoutOrder = self:GetInnerOrder()
+    btn.TextColor3 = self.Theme.TextWhite; btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 14; btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.ZIndex = cardZBase + 2; btn.LayoutOrder = self:GetInnerOrder()
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     
     btn.MouseButton1Click:Connect(function()
@@ -176,31 +155,21 @@ end
 function Components:CriarCheckboxMetade(texto, parentRow, stateTable, stateKey, cardZBase, callback)
     stateTable = stateTable or {}
     local frame = Instance.new("Frame", parentRow)
-    frame.Size = UDim2.new(0.5, -2.5, 1, 0)
-    frame.BackgroundColor3 = self.Theme.PanelBG
-    frame.ZIndex = cardZBase + 3
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
+    frame.Size = UDim2.new(0.5, -2.5, 1, 0); frame.BackgroundColor3 = self.Theme.PanelBG
+    frame.ZIndex = cardZBase + 3; Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
     
     local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 22, 0, 22)
-    btn.Position = UDim2.new(0, 5, 0.5, -11)
+    btn.Size = UDim2.new(0, 22, 0, 22); btn.Position = UDim2.new(0, 5, 0.5, -11)
     local isAtivo = stateTable[stateKey]
     btn.BackgroundColor3 = isAtivo and self.Theme.AccentBlue or self.Theme.CardBG
-    btn.Text = isAtivo and "✓" or ""
-    btn.TextColor3 = self.Theme.TextWhite
-    btn.ZIndex = cardZBase + 4
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    btn.Text = isAtivo and "✓" or ""; btn.TextColor3 = self.Theme.TextWhite
+    btn.ZIndex = cardZBase + 4; Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
     
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(1, -35, 1, 0)
-    label.Position = UDim2.new(0, 32, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = texto
-    label.TextColor3 = self.Theme.TextWhite
-    label.Font = Enum.Font.SourceSansSemibold
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.ZIndex = cardZBase + 4
+    label.Size = UDim2.new(1, -35, 1, 0); label.Position = UDim2.new(0, 32, 0, 0)
+    label.BackgroundTransparency = 1; label.Text = texto; label.TextColor3 = self.Theme.TextWhite
+    label.Font = Enum.Font.SourceSansSemibold; label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left; label.ZIndex = cardZBase + 4
     
     btn.MouseButton1Click:Connect(function()
         stateTable[stateKey] = not stateTable[stateKey]
@@ -215,31 +184,20 @@ end
 function Components:CriarInputMetade(texto, parentRow, stateTable, stateKey, valDefault, cardZBase)
     stateTable = stateTable or {}
     local frame = Instance.new("Frame", parentRow)
-    frame.Size = UDim2.new(0.5, -2.5, 1, 0)
-    frame.BackgroundColor3 = self.Theme.PanelBG
-    frame.ZIndex = cardZBase + 3
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
+    frame.Size = UDim2.new(0.5, -2.5, 1, 0); frame.BackgroundColor3 = self.Theme.PanelBG
+    frame.ZIndex = cardZBase + 3; Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 4)
     
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.5, 0, 1, 0)
-    label.Position = UDim2.new(0, 8, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = texto
-    label.TextColor3 = self.Theme.TextDimmed
-    label.Font = Enum.Font.SourceSansSemibold
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.ZIndex = cardZBase + 4
+    label.Size = UDim2.new(0.5, 0, 1, 0); label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1; label.Text = texto; label.TextColor3 = self.Theme.TextDimmed
+    label.Font = Enum.Font.SourceSansSemibold; label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left; label.ZIndex = cardZBase + 4
     
     local input = Instance.new("TextBox", frame)
-    input.Size = UDim2.new(0.45, 0, 0, 22)
-    input.Position = UDim2.new(0.5, 0, 0.5, -11)
-    input.BackgroundColor3 = self.Theme.InputBG
-    input.Text = tostring(stateTable[stateKey] or valDefault)
-    input.TextColor3 = self.Theme.AccentBlue
-    input.Font = Enum.Font.SourceSansBold
-    input.TextSize = 13
-    input.ZIndex = cardZBase + 4
+    input.Size = UDim2.new(0.45, 0, 0, 22); input.Position = UDim2.new(0.5, 0, 0.5, -11)
+    input.BackgroundColor3 = self.Theme.InputBG; input.Text = tostring(stateTable[stateKey] or valDefault)
+    input.TextColor3 = self.Theme.AccentBlue; input.Font = Enum.Font.SourceSansBold
+    input.TextSize = 13; input.ZIndex = cardZBase + 4
     Instance.new("UICorner", input).CornerRadius = UDim.new(0, 4)
     
     input.FocusLost:Connect(function()
@@ -264,117 +222,71 @@ function Components:CriarInputLargo(placeholder, parentRow, cardZBase)
     return input
 end
 
--- ================= O MOLDE SUPER SUAVE PARA ITENS DA LISTA =================
 function Components:CriarItemDropdown(texto, parent, zIndexBase)
     local itemBtn = Instance.new("TextButton", parent)
-    itemBtn.Size = UDim2.new(1, 0, 0, 32)
-    itemBtn.BackgroundColor3 = Components.Theme.PanelBG 
-    itemBtn.BorderSizePixel = 0
-    itemBtn.Text = texto
-    itemBtn.TextColor3 = Components.Theme.TextWhite
-    itemBtn.Font = Enum.Font.SourceSansSemibold
-    itemBtn.TextSize = 13
-    itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-    itemBtn.ZIndex = zIndexBase
-    itemBtn.AutoButtonColor = true 
-
+    itemBtn.Size = UDim2.new(1, 0, 0, 32); itemBtn.BackgroundColor3 = Components.Theme.PanelBG 
+    itemBtn.Text = texto; itemBtn.TextColor3 = Components.Theme.TextWhite
+    itemBtn.Font = Enum.Font.SourceSansSemibold; itemBtn.TextSize = 13
+    itemBtn.TextXAlignment = Enum.TextXAlignment.Left; itemBtn.ZIndex = zIndexBase
     Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 6)
-    
     local pad = Instance.new("UIPadding", itemBtn)
-    pad.PaddingLeft = UDim.new(0, 10)
-    pad.PaddingRight = UDim.new(0, 10)
-
+    pad.PaddingLeft = UDim.new(0, 10); pad.PaddingRight = UDim.new(0, 10)
     return itemBtn
 end
 
 function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMulti, cardZBase, hasSearch)
     stateTable = stateTable or {}
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(0.95, 0, 0, 32)
-    frame.BackgroundTransparency = 1
-    frame.ZIndex = cardZBase + 2
-    frame.LayoutOrder = self:GetInnerOrder()
+    frame.Size = UDim2.new(0.95, 0, 0, 32); frame.BackgroundTransparency = 1
+    frame.ZIndex = cardZBase + 2; frame.LayoutOrder = self:GetInnerOrder()
     
     local mainBtn = Instance.new("TextButton", frame)
-    mainBtn.Size = UDim2.new(1, 0, 1, 0)
-    mainBtn.BackgroundColor3 = self.Theme.ButtonBG
-    mainBtn.Text = "  " .. labelTexto .. ": Atualizar"
-    mainBtn.TextColor3 = self.Theme.TextWhite
-    mainBtn.Font = Enum.Font.SourceSansSemibold
-    mainBtn.TextSize = 14
-    mainBtn.TextXAlignment = Enum.TextXAlignment.Left
-    mainBtn.BorderSizePixel = 0
-    mainBtn.ZIndex = cardZBase + 3
+    mainBtn.Size = UDim2.new(1, 0, 1, 0); mainBtn.BackgroundColor3 = self.Theme.ButtonBG
+    mainBtn.Text = "  " .. labelTexto; mainBtn.TextColor3 = self.Theme.TextWhite
+    mainBtn.Font = Enum.Font.SourceSansSemibold; mainBtn.TextSize = 14
+    mainBtn.TextXAlignment = Enum.TextXAlignment.Left; mainBtn.ZIndex = cardZBase + 3
     Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 4)
     
     local icone = Instance.new("TextLabel", mainBtn)
-    icone.Size = UDim2.new(0, 20, 1, 0)
-    icone.Position = UDim2.new(1, -25, 0, 0)
-    icone.BackgroundTransparency = 1
-    icone.Text = "▼"
-    icone.TextColor3 = self.Theme.TextDimmed
-    icone.ZIndex = cardZBase + 4
+    icone.Size = UDim2.new(0, 20, 1, 0); icone.Position = UDim2.new(1, -25, 0, 0)
+    icone.BackgroundTransparency = 1; icone.Text = "▼"
+    icone.TextColor3 = self.Theme.TextDimmed; icone.ZIndex = cardZBase + 4
     
-    -- O Container que abriga a lista!
     local dropdownContainer = Instance.new("TextButton", frame)
-    dropdownContainer.Text = ""
-    dropdownContainer.AutoButtonColor = false
-    dropdownContainer.Size = UDim2.new(1, 0, 0, 210)
-    dropdownContainer.Position = UDim2.new(0, 0, 1, 4)
-    dropdownContainer.BackgroundColor3 = self.Theme.DropdownBG
-    dropdownContainer.BorderSizePixel = 0
-    dropdownContainer.Visible = false
-    -- ZINDEX PODEROSO: Nunca mais vai ficar escondido
-    dropdownContainer.ZIndex = cardZBase + 50 
-    dropdownContainer.Active = true 
+    dropdownContainer.Text = ""; dropdownContainer.AutoButtonColor = false
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 210); dropdownContainer.Position = UDim2.new(0, 0, 1, 4)
+    dropdownContainer.BackgroundColor3 = self.Theme.DropdownBG; dropdownContainer.Visible = false
+    dropdownContainer.ZIndex = cardZBase + 50; dropdownContainer.Active = true 
     Instance.new("UICorner", dropdownContainer).CornerRadius = UDim.new(0, 6)
 
     local dropStroke = Instance.new("UIStroke", dropdownContainer)
-    dropStroke.Color = Color3.fromRGB(80, 80, 80)
-    dropStroke.Thickness = 1
+    dropStroke.Color = Color3.fromRGB(80, 80, 80); dropStroke.Thickness = 1
     
-    local searchBox = nil
-    local yOffsetScroll = 0
-
+    local searchBox = nil; local yOffsetScroll = 0
     if hasSearch then
         searchBox = Instance.new("TextBox", dropdownContainer)
-        searchBox.Size = UDim2.new(1, -12, 0, 30)
-        searchBox.Position = UDim2.new(0, 6, 0, 6)
-        searchBox.BackgroundColor3 = self.Theme.InputBG
-        searchBox.PlaceholderText = "Pesquisar..."
-        searchBox.Text = ""
-        searchBox.TextColor3 = self.Theme.AccentBlue
-        searchBox.Font = Enum.Font.SourceSansSemibold
-        searchBox.TextSize = 13
-        searchBox.TextXAlignment = Enum.TextXAlignment.Left
-        searchBox.ZIndex = cardZBase + 51
+        searchBox.Size = UDim2.new(1, -12, 0, 30); searchBox.Position = UDim2.new(0, 6, 0, 6)
+        searchBox.BackgroundColor3 = self.Theme.InputBG; searchBox.PlaceholderText = "Search..."
+        searchBox.Text = ""; searchBox.TextColor3 = self.Theme.AccentBlue
+        searchBox.Font = Enum.Font.SourceSansSemibold; searchBox.TextSize = 13
+        searchBox.TextXAlignment = Enum.TextXAlignment.Left; searchBox.ZIndex = cardZBase + 51
         Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 4)
-        
-        local sPad = Instance.new("UIPadding", searchBox)
-        sPad.PaddingLeft = UDim.new(0, 10)
+        local sPad = Instance.new("UIPadding", searchBox); sPad.PaddingLeft = UDim.new(0, 10)
         yOffsetScroll = 40 
     end
     
     local scroll = Instance.new("ScrollingFrame", dropdownContainer)
-    scroll.Size = UDim2.new(1, 0, 1, -yOffsetScroll)
-    scroll.Position = UDim2.new(0, 0, 0, yOffsetScroll)
-    scroll.BackgroundTransparency = 1
-    scroll.BorderSizePixel = 0
-    scroll.ZIndex = cardZBase + 51
-    scroll.ScrollBarThickness = 4
-    scroll.ScrollBarImageColor3 = self.Theme.AccentBlue
-    scroll.Active = true 
+    scroll.Size = UDim2.new(1, 0, 1, -yOffsetScroll); scroll.Position = UDim2.new(0, 0, 0, yOffsetScroll)
+    scroll.BackgroundTransparency = 1; scroll.BorderSizePixel = 0; scroll.ZIndex = cardZBase + 51
+    scroll.ScrollBarThickness = 4; scroll.ScrollBarImageColor3 = self.Theme.AccentBlue; scroll.Active = true 
 
     local listLayout = Instance.new("UIListLayout", scroll)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Padding = UDim.new(0, 5) 
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder; listLayout.Padding = UDim.new(0, 5) 
     listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     
     local scrollPad = Instance.new("UIPadding", scroll)
-    scrollPad.PaddingTop = UDim.new(0, 5)
-    scrollPad.PaddingBottom = UDim.new(0, 5)
-    scrollPad.PaddingLeft = UDim.new(0, 5)
-    scrollPad.PaddingRight = UDim.new(0, 5)
+    scrollPad.PaddingTop = UDim.new(0, 5); scrollPad.PaddingBottom = UDim.new(0, 5)
+    scrollPad.PaddingLeft = UDim.new(0, 5); scrollPad.PaddingRight = UDim.new(0, 5)
     
     mainBtn.MouseButton1Click:Connect(function() 
         dropdownContainer.Visible = not dropdownContainer.Visible 
@@ -382,66 +294,50 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     end)
     
     if isMulti and not stateTable[stateKey] then stateTable[stateKey] = {["All"] = true} end
-    
-    local dropdownObj = {}
-    local todosBotoes = {}
+    local dropdownObj = {}; local todosBotoes = {}
     
     function dropdownObj:Refresh(listaItems)
         if type(listaItems) ~= "table" then listaItems = {} end
-        
         for _, old in ipairs(scroll:GetChildren()) do if old:IsA("TextButton") then old:Destroy() end end
         todosBotoes = {}
         
         local itemsToRender = {}
         if isMulti then table.insert(itemsToRender, "All") end
-        
         for _, item in ipairs(listaItems) do 
-            table.insert(itemsToRender, item) 
+            if item ~= "Nenhuma Ferramenta Equipada" and item ~= "Ainda não carregou / Vazio" then table.insert(itemsToRender, item) end
         end
 
-        if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then
-            table.insert(itemsToRender, "Nenhuma encontrada")
-        end
+        if #itemsToRender == 0 or (isMulti and #itemsToRender == 1) then table.insert(itemsToRender, "None Found") end
 
         local function atualizarMainText()
             if isMulti then
                 if stateTable[stateKey]["All"] then mainBtn.Text = "  " .. labelTexto .. ": All"
                 else
                     local count = 0
-                    for k, v in pairs(stateTable[stateKey]) do if v and k ~= "Nenhuma encontrada" then count = count + 1 end end
+                    for k, v in pairs(stateTable[stateKey]) do if v and k ~= "None Found" then count = count + 1 end end
                     mainBtn.Text = "  " .. labelTexto .. ": " .. count .. " sel."
                 end
             else
-                mainBtn.Text = "  " .. labelTexto .. ": " .. tostring(stateTable[stateKey] or "Nenhum")
+                mainBtn.Text = "  " .. labelTexto .. ": " .. tostring(stateTable[stateKey] or "None")
             end
         end
         
         for _, itemNome in ipairs(itemsToRender) do
             local itemBtn = Components:CriarItemDropdown(itemNome, scroll, cardZBase + 52)
             local corPadrao = Components.Theme.PanelBG
-            
             table.insert(todosBotoes, {btn = itemBtn, nome = itemNome, bg = corPadrao})
             
             local function applyVisual()
                 if isMulti then
-                    if stateTable[stateKey] and stateTable[stateKey][itemNome] then
-                        itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
-                    else
-                        itemBtn.BackgroundColor3 = corPadrao
-                    end
+                    itemBtn.BackgroundColor3 = (stateTable[stateKey] and stateTable[stateKey][itemNome]) and Components.Theme.AccentBlue or corPadrao
                 else
-                    if stateTable[stateKey] == itemNome then
-                        itemBtn.BackgroundColor3 = Components.Theme.AccentBlue
-                    else
-                        itemBtn.BackgroundColor3 = corPadrao
-                    end
+                    itemBtn.BackgroundColor3 = (stateTable[stateKey] == itemNome) and Components.Theme.AccentBlue or corPadrao
                 end
             end
             applyVisual()
             
             itemBtn.MouseButton1Click:Connect(function()
-                if itemNome == "Nenhuma encontrada" then return end
-
+                if itemNome == "None Found" then return end
                 if isMulti then
                     if itemNome == "All" then stateTable[stateKey] = {["All"] = true}
                     else
@@ -449,23 +345,11 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
                         stateTable[stateKey]["All"] = nil
                         stateTable[stateKey][itemNome] = not stateTable[stateKey][itemNome]
                     end
-                    for _, obj in ipairs(todosBotoes) do
-                        if stateTable[stateKey][obj.nome] then
-                            obj.btn.BackgroundColor3 = Components.Theme.AccentBlue
-                        else
-                            obj.btn.BackgroundColor3 = obj.bg
-                        end
-                    end
+                    for _, obj in ipairs(todosBotoes) do obj.btn.BackgroundColor3 = stateTable[stateKey][obj.nome] and Components.Theme.AccentBlue or obj.bg end
                     atualizarMainText()
                 else
                     stateTable[stateKey] = itemNome
-                    for _, obj in ipairs(todosBotoes) do
-                        if obj.nome == itemNome then
-                            obj.btn.BackgroundColor3 = Components.Theme.AccentBlue
-                        else
-                            obj.btn.BackgroundColor3 = obj.bg
-                        end
-                    end
+                    for _, obj in ipairs(todosBotoes) do obj.btn.BackgroundColor3 = (obj.nome == itemNome) and Components.Theme.AccentBlue or obj.bg end
                     atualizarMainText()
                     dropdownContainer.Visible = false
                 end
@@ -476,46 +360,41 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
             local termo = searchBox and searchBox.Text:lower() or ""
             local count = 0
             for _, obj in ipairs(todosBotoes) do
-                if termo == "" or obj.nome:lower():match(termo) then
-                    obj.btn.Visible = true
-                    count = count + 1
-                else
-                    obj.btn.Visible = false
-                end
+                if termo == "" or obj.nome:lower():match(termo) then obj.btn.Visible = true; count = count + 1 else obj.btn.Visible = false end
             end
             local alturaNecessaria = (count * 32) + (math.max(0, count - 1) * 5) + 10
             scroll.CanvasSize = UDim2.new(0, 0, 0, alturaNecessaria)
         end
-        
         if searchBox then searchBox:GetPropertyChangedSignal("Text"):Connect(renderizarBusca) end
-        renderizarBusca()
-        atualizarMainText()
+        renderizarBusca(); atualizarMainText()
     end
-
     dropdownObj:Refresh({}) 
     return dropdownObj
 end
 
+-- NOVO DESIGN D-PAD (Compacto, elegante, limpo)
 function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     local Bot = _G.IslandsBot
     local State = Bot.State
 
     local container = Instance.new("Frame", parentCard)
-    container.Size = UDim2.new(0.95, 0, 0, 100)
+    container.Size = UDim2.new(0.95, 0, 0, 85) -- Mais compacto
     container.BackgroundColor3 = self.Theme.InputBG
     container.ZIndex = cardZBase + 2
     container.LayoutOrder = self:GetInnerOrder()
     Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
     
+    -- Lado Esquerdo: D-Pad Direcional
     local dpad = Instance.new("Frame", container)
     dpad.Size = UDim2.new(0, 80, 0, 80)
-    dpad.Position = UDim2.new(0, 10, 0, 10)
+    dpad.Position = UDim2.new(0.15, 0, 0, 2)
     dpad.BackgroundTransparency = 1
     dpad.ZIndex = cardZBase + 3
     
-    local function CriarSetinha(texto, x, y, direcao)
-        local btn = Instance.new("TextButton", dpad)
-        btn.Size = UDim2.new(0, 26, 0, 26)
+    local btnSize = 24
+    local function CriarSetinha(texto, x, y, direcao, parentFrame)
+        local btn = Instance.new("TextButton", parentFrame)
+        btn.Size = UDim2.new(0, btnSize, 0, btnSize)
         btn.Position = UDim2.new(0, x, 0, y)
         btn.BackgroundColor3 = self.Theme.CardStroke
         btn.Text = texto
@@ -526,35 +405,22 @@ function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         btn.MouseButton1Click:Connect(function() if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end end)
     end
-    CriarSetinha("^", 27, 0, "Frente")
-    CriarSetinha("v", 27, 54, "Tras")
-    CriarSetinha("<", 0, 27, "Esquerda")
-    CriarSetinha(">", 54, 27, "Direita")
     
+    -- X e Z
+    CriarSetinha("^", 28, 5, "Frente", dpad)
+    CriarSetinha("v", 28, 53, "Tras", dpad)
+    CriarSetinha("<", 4, 29, "Esquerda", dpad)
+    CriarSetinha(">", 52, 29, "Direita", dpad)
+    
+    -- Lado Direito: Cima/Baixo
     local vertPanel = Instance.new("Frame", container)
-    vertPanel.Size = UDim2.new(1, -100, 1, -20)
-    vertPanel.Position = UDim2.new(0, 95, 0, 10)
+    vertPanel.Size = UDim2.new(0, 30, 0, 80)
+    vertPanel.Position = UDim2.new(0.7, 0, 0, 2)
     vertPanel.BackgroundTransparency = 1
     vertPanel.ZIndex = cardZBase + 3
     
-    local layout = Instance.new("UIListLayout", vertPanel)
-    layout.Padding = UDim.new(0, 8)
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    
-    local function CriarAcaoVert(texto, direcao)
-        local btn = Instance.new("TextButton", vertPanel)
-        btn.Size = UDim2.new(1, 0, 0, 34)
-        btn.BackgroundColor3 = self.Theme.AccentBlue
-        btn.Text = texto
-        btn.TextColor3 = self.Theme.TextWhite
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 13
-        btn.ZIndex = cardZBase + 4
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-        btn.MouseButton1Click:Connect(function() if State[scannerName] then State[scannerName]:MoverSeletor(direcao) end end)
-    end
-    CriarAcaoVert("🔼 Subir Seletor", "Subir")
-    CriarAcaoVert("🔽 Descer Seletor", "Descer")
+    CriarSetinha("🔼", 3, 10, "Subir", vertPanel)
+    CriarSetinha("🔽", 3, 46, "Descer", vertPanel)
 end
 
 return Components
