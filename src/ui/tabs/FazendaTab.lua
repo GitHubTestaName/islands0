@@ -56,8 +56,9 @@ function FazendaTab:Construir(paginaPai)
         if State.ScannerFazenda and type(State.ScannerFazenda.EscanearArea) == "function" then State.ScannerFazenda:EscanearArea() end
     end)
 
-    -- ================= BLOCO 4: SELECTOR & SAVES (VERTICAL REESTRUTURADO 480 HEIGHT) =================
-    local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, 480)
+    -- ================= BLOCO 4: SELECTOR & SAVES (WIDTH APLICADO = 480) =================
+    -- Alteração cirúrgica: nil (para não fixar a altura), 480 (para forçar a largura)
+    local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, nil, 480)
     
     Componentes:CriarBotaoEstilizado("👁️ Spawn Selector", cSave, zSave, function() 
         if State.ScannerFazenda and type(State.ScannerFazenda.CriarSeletorFrontal) == "function" then State.ScannerFazenda:CriarSeletorFrontal() end 

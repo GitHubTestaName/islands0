@@ -8,7 +8,7 @@ function GeralTab:Construir(paginaPai)
 
     Componentes:ResetOrder()
 
-    -- ================= BLOCO 1: MINER & BUILDER (ORDEM CORRIGIDA EXATA) =================
+    -- ================= BLOCO 1: MINER & BUILDER =================
     local cMiner, zMiner = Componentes:CriarCard("MINER & BUILDER", paginaPai)
     
     Componentes:CriarToggleLargo("Mine", cMiner, State, "Minerando", zMiner, function(v) 
@@ -25,7 +25,7 @@ function GeralTab:Construir(paginaPai)
         if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end 
     end)
 
-    -- ================= BLOCO 2: CONFIG & DELAY (ALTURA FORÇADA EM 205) =================
+    -- ================= BLOCO 2: CONFIG & DELAY (ALTURA FIXADA EM 205) =================
     local cMinerCfg, zMinerCfg = Componentes:CriarCard("CONFIG & DELAY", paginaPai, 205)
     
     Componentes:CriarSubtitulo("Movement & Performance:", cMinerCfg, zMinerCfg)
@@ -38,8 +38,9 @@ function GeralTab:Construir(paginaPai)
         if State.ScannerGeral and type(State.ScannerGeral.EscanearArea) == "function" then State.ScannerGeral:EscanearArea() end
     end)
 
-    -- ================= BLOCO 3: SELECTOR & SAVES (VERTICAL REESTRUTURADO 480 HEIGHT) =================
-    local cSelAzul, zSelAzul = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, 480)
+    -- ================= BLOCO 3: SELECTOR & SAVES (WIDTH APLICADO = 480) =================
+    -- Alteração cirúrgica: nil (para não fixar a altura), 480 (para forçar a largura)
+    local cSelAzul, zSelAzul = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, nil, 480)
     
     Componentes:CriarBotaoEstilizado("👁️ Spawn Selector", cSelAzul, zSelAzul, function() 
         if State.ScannerGeral and type(State.ScannerGeral.CriarSeletorFrontal) == "function" then State.ScannerGeral:CriarSeletorFrontal() end 

@@ -31,7 +31,8 @@ function Components:GetInnerOrder()
     self.innerOrderGlobal = self.innerOrderGlobal + 1; return self.innerOrderGlobal 
 end
 
-function Components:CriarCard(titulo, parent, forcedHeight)
+function Components:CriarCard(titulo, parent, forcedHeight, customWidth)
+    local width = customWidth or 240 -- A mágica da largura aqui!
     local order, baseZ = self:GetOrdem()
     local card = Instance.new("Frame", parent)
     card.Name = "Card_" .. titulo
@@ -76,12 +77,12 @@ function Components:CriarCard(titulo, parent, forcedHeight)
     pad.PaddingTop = UDim.new(0, 10); pad.PaddingBottom = UDim.new(0, 10)
 
     if forcedHeight then
-        card.Size = UDim2.new(0, 240, 0, forcedHeight)
+        card.Size = UDim2.new(0, width, 0, forcedHeight)
         content.Size = UDim2.new(1, 0, 1, -31)
     else
         cLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             content.Size = UDim2.new(1, 0, 0, cLayout.AbsoluteContentSize.Y + 20)
-            card.Size = UDim2.new(0, 240, 0, 31 + content.Size.Y.Offset)
+            card.Size = UDim2.new(0, width, 0, 31 + content.Size.Y.Offset)
         end)
     end
     return content, baseZ
@@ -397,7 +398,6 @@ function Components:CriarDropdown(labelTexto, parent, stateTable, stateKey, isMu
     return dropdownObj
 end
 
--- NOVO DESIGN D-PAD (Alinhamento compacto e limpo por eixos)
 function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     local Bot = _G.IslandsBot
     local State = Bot.State
@@ -410,7 +410,6 @@ function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     container.LayoutOrder = self:GetInnerOrder()
     Instance.new("UICorner", container).CornerRadius = UDim.new(0, 6)
     
-    -- Eixo X / Z (D-Pad Tradicional)
     local dpad = Instance.new("Frame", container)
     dpad.Name = "JoystickXZ"
     dpad.Size = UDim2.new(0, 80, 0, 80)
@@ -439,7 +438,6 @@ function Components:CriarControlesEspaciais(parentCard, cardZBase, scannerName)
     CriarSetinha("<", 4, 29, "Esquerda", dpad)
     CriarSetinha(">", 52, 29, "Direita", dpad)
     
-    -- Eixo Y (Verticais Alinhados puros)
     local vertPanel = Instance.new("Frame", container)
     vertPanel.Name = "JoystickY"
     vertPanel.Size = UDim2.new(0, 30, 0, 80)
