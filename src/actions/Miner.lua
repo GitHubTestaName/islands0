@@ -52,7 +52,7 @@ local function IrParaAlvo(alvoPos)
         
         tween:Play()
         while tween.PlaybackState == Enum.PlaybackState.Playing and State.Minerando do
-            task.wait(0.05)
+            task.wait(0.1)
         end
         
         if not State.Minerando then tween:Cancel() end
