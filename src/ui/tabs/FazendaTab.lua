@@ -52,12 +52,12 @@ function FazendaTab:Construir(paginaPai)
     Componentes:CriarInputMetade("💨 Speed:", rDelay2, State.FarmSettings, "TweenSpeed", 20, zDelay)
     
     local rDelay3 = Componentes:CriarGridDupla(cDelay, zDelay)
-    Componentes:CriarCheckboxMetade("⚡ Hide Numbers", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
+    Componentes:CriarCheckboxMetade("Hide Numbers", rDelay3, State.ScannerFazenda, "HideNumbers", zDelay, function()
         if State.ScannerFazenda and type(State.ScannerFazenda.EscanearArea) == "function" then State.ScannerFazenda:EscanearArea() end
     end)
 
-    -- ================= BLOCO 4: SELECTOR & SAVES =================
-    local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai)
+    -- ================= BLOCO 4: SELECTOR & SAVES (VERTICAL REESTRUTURADO 480 HEIGHT) =================
+    local cSave, zSave = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, 480)
     
     Componentes:CriarBotaoEstilizado("👁️ Spawn Selector", cSave, zSave, function() 
         if State.ScannerFazenda and type(State.ScannerFazenda.CriarSeletorFrontal) == "function" then State.ScannerFazenda:CriarSeletorFrontal() end 
@@ -67,12 +67,14 @@ function FazendaTab:Construir(paginaPai)
 
     Componentes:CriarSubtitulo("Area Management:", cSave, zSave)
     local rSaveNome = Instance.new("Frame", cSave)
+    rSaveNome.Name = "Row_SavePlotName"
     rSaveNome.Size = UDim2.new(0.95, 0, 0, 32); rSaveNome.BackgroundTransparency = 1
     rSaveNome.ZIndex = zSave + 2; rSaveNome.LayoutOrder = Componentes:GetInnerOrder()
     
     local inputPlotFazenda = Componentes:CriarInputLargo("Plot:", rSaveNome, zSave)
     
     local btnSavePlotFazenda = Instance.new("TextButton", rSaveNome)
+    btnSavePlotFazenda.Name = "TriggerSavePlot"
     btnSavePlotFazenda.Size = UDim2.new(0.35, 0, 1, 0); btnSavePlotFazenda.Position = UDim2.new(0.65, 5, 0, 0)
     btnSavePlotFazenda.BackgroundColor3 = Color3.fromRGB(0, 160, 220); btnSavePlotFazenda.Text = "💾 Save"
     btnSavePlotFazenda.TextColor3 = Color3.fromRGB(255, 255, 255); btnSavePlotFazenda.Font = Enum.Font.SourceSansBold

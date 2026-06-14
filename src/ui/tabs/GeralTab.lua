@@ -8,37 +8,38 @@ function GeralTab:Construir(paginaPai)
 
     Componentes:ResetOrder()
 
-    -- ================= BLOCO 1: MINER & BUILDER =================
+    -- ================= BLOCO 1: MINER & BUILDER (ORDEM CORRIGIDA EXATA) =================
     local cMiner, zMiner = Componentes:CriarCard("MINER & BUILDER", paginaPai)
     
-    Componentes:CriarToggleLargo("▶ Auto-Mine", cMiner, State, "Minerando", zMiner, function(v) 
+    Componentes:CriarToggleLargo("Mine", cMiner, State, "Minerando", zMiner, function(v) 
         if Bot.Modules.Miner then Bot.Modules.Miner:Alternar(v) end 
     end)
     
+    Componentes:CriarBotaoEstilizado("Fill With Block", cMiner, zMiner, function() 
+        if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end 
+    end)
+
     local DropdownBlocos = Componentes:CriarDropdown("🎒 Inventory", cMiner, State, "BlocoSelecionado", false, zMiner, true)
     
     Componentes:CriarBotaoEstilizado("🔄 Sync", cMiner, zMiner, function() 
         if Bot.Modules.Manager then DropdownBlocos:Refresh(Bot.Modules.Manager:GetInventoryTools("Block")) end 
     end)
-    Componentes:CriarBotaoEstilizado("🔨 Build Marked Area", cMiner, zMiner, function() 
-        if Bot.Modules.Builder then Bot.Modules.Builder:ColocarAreaMarcada() end 
-    end)
 
-    -- ================= BLOCO 2: CONFIG & DELAY (MINER) =================
-    local cMinerCfg, zMinerCfg = Componentes:CriarCard("CONFIG & DELAY", paginaPai)
+    -- ================= BLOCO 2: CONFIG & DELAY (ALTURA FORÇADA EM 205) =================
+    local cMinerCfg, zMinerCfg = Componentes:CriarCard("CONFIG & DELAY", paginaPai, 205)
     
     Componentes:CriarSubtitulo("Movement & Performance:", cMinerCfg, zMinerCfg)
     local rMinerDelay1 = Componentes:CriarGridDupla(cMinerCfg, zMinerCfg)
-    Componentes:CriarCheckboxMetade("✈️ Smooth Flight", rMinerDelay1, State.MiningSettings, "TweenToTarget", zMinerCfg)
-    Componentes:CriarInputMetade("💨 Speed:", rMinerDelay1, State.MiningSettings, "TweenSpeed", 20, zMinerCfg)
+    Componentes:CriarCheckboxMetade("Tween", rMinerDelay1, State.MiningSettings, "TweenToTarget", zMinerCfg)
+    Componentes:CriarInputMetade("Speed:", rMinerDelay1, State.MiningSettings, "TweenSpeed", 20, zMinerCfg)
     
     local rMinerDelay2 = Componentes:CriarGridDupla(cMinerCfg, zMinerCfg)
-    Componentes:CriarCheckboxMetade("⚡ Hide Numbers", rMinerDelay2, State.ScannerGeral, "HideNumbers", zMinerCfg, function()
+    Componentes:CriarCheckboxMetade("Hide Numbers", rMinerDelay2, State.ScannerGeral, "HideNumbers", zMinerCfg, function()
         if State.ScannerGeral and type(State.ScannerGeral.EscanearArea) == "function" then State.ScannerGeral:EscanearArea() end
     end)
 
-    -- ================= BLOCO 3: SELECTOR & SAVES (MINER) =================
-    local cSelAzul, zSelAzul = Componentes:CriarCard("SELECTOR & SAVES", paginaPai)
+    -- ================= BLOCO 3: SELECTOR & SAVES (VERTICAL REESTRUTURADO 480 HEIGHT) =================
+    local cSelAzul, zSelAzul = Componentes:CriarCard("SELECTOR & SAVES", paginaPai, 480)
     
     Componentes:CriarBotaoEstilizado("👁️ Spawn Selector", cSelAzul, zSelAzul, function() 
         if State.ScannerGeral and type(State.ScannerGeral.CriarSeletorFrontal) == "function" then State.ScannerGeral:CriarSeletorFrontal() end 
@@ -48,12 +49,14 @@ function GeralTab:Construir(paginaPai)
 
     Componentes:CriarSubtitulo("Area Management:", cSelAzul, zSelAzul)
     local rSaveNomeM = Instance.new("Frame", cSelAzul)
+    rSaveNomeM.Name = "Row_SavePlotName"
     rSaveNomeM.Size = UDim2.new(0.95, 0, 0, 32); rSaveNomeM.BackgroundTransparency = 1
     rSaveNomeM.ZIndex = zSelAzul + 2; rSaveNomeM.LayoutOrder = Componentes:GetInnerOrder()
     
     local inputPlotMining = Componentes:CriarInputLargo("Plot:", rSaveNomeM, zSelAzul)
     
     local btnSavePlotMining = Instance.new("TextButton", rSaveNomeM)
+    btnSavePlotMining.Name = "TriggerSavePlot"
     btnSavePlotMining.Size = UDim2.new(0.35, 0, 1, 0); btnSavePlotMining.Position = UDim2.new(0.65, 5, 0, 0)
     btnSavePlotMining.BackgroundColor3 = Color3.fromRGB(0, 160, 220); btnSavePlotMining.Text = "💾 Save"
     btnSavePlotMining.TextColor3 = Color3.fromRGB(255, 255, 255); btnSavePlotMining.Font = Enum.Font.SourceSansBold
